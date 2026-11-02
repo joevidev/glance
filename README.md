@@ -100,21 +100,34 @@ Calibration stays in Electron's user-data directory, never in the repo. Full des
 
 ## Results
 
-Filled in from `results/summary.json` once all systems are scored. Nothing here is an estimate unless it says so.
+360 held-out commands from 8 sites never used in training. Source: `results/summary.json` and `results/rows/*.jsonl` (one row per case per system). Cost = measured tokens times list price (`results/PRICING.md`); the LoRA's cost and latency come from a training session and are **estimates**, not serving numbers.
 
 | System | Top-1 accuracy | Cost / 1,000 commands | Latency p50 |
 |---|---|---|---|
-| `raw_gaze` | [pending] | | |
-| `nearest` | [pending] | | |
-| `open_base` | [pending] | | |
-| `frontier` | [pending] | | |
-| LoRA | [pending] | | |
+| `raw_gaze` (element under the gaze point) | 8.3% | $0 | local |
+| `nearest` (nearest element to the gaze) | 26.7% | $0 | local |
+| `open_cmd_only` (glm-5p3, command only) | 45.8% | $5.62 | 3.0 s |
+| `harness_top5` (glm-5p3, 5 nearest elements only) | 39.7% | $6.28 | 4.6 s |
+| LoRA on glm-5p3 (**not better than its base**) | 52.8% | $5.79 (estimate) | 1.6 s (training session, not serving) |
+| `frontier_geo` (gpt-6-astra, distance prompt) | 54.4% | $13.79 | 1.5 s |
+| `open_base` (glm-5p3, gaze + command) | 56.4% | $7.76 | 4.4 s |
+| `frontier` (gpt-6-astra, gaze + command) | 57.2% | $12.20 | 1.6 s |
+| `open_base_flash` (untrained glm-5p3-flash, extra data point) | 58.9% | $0.65 | 2.8 s |
+
+Key comparisons (McNemar exact test and a site-cluster bootstrap, 5,000 draws; a gain counts only if both agree):
+
+- Gaze + command vs command only (open model): **+10.6 points**, p = 2e-5, CI +4.7 to +16.4. Real.
+- LoRA vs its base: **-3.6 points**, p = 0.11, CI -6.7 to -0.6. The tests disagree: not called real. The LoRA removed format errors (0 unparseable vs 26).
+- Untrained flash vs frontier: +1.7 points, p = 0.21. No reliable difference, at about 5% of the cost.
+- Distance prompt on the frontier model: **-2.8 points**, p = 0.013. It hurt.
+
+Not run because our Fireworks account reached its monthly spending cap at about 13:48 PT and was suspended: `harness_vote` (46 of 360 rows lost), `open_base_geo`, a second LoRA, and a LoRA on Muse Glimmer 30B (prepared, not launched). They are listed as `not_run` in `summary.json`. The demo app uses OpenAI `gpt-6-astra` for the model call (`GLANCE_PROVIDER=openai`).
 
 ## Limits
 
 - **The benchmark gaze is simulated** (target plus Gaussian noise), not recorded from real eyes. It tests the model's choice, not the eye tracker.
 - **Eye tracking and gestures are verified with synthetic camera frames.** Wink, brow and mouth thresholds and the head-pose sign need real faces and real lighting.
-- **The app serves the base model, not the LoRA.** Serving a LoRA needs an hourly-billed dedicated deployment. LoRA latency is measured inside the training session, which is not serving latency, and is labeled as such.
+- **The app never serves our LoRA, and the demo model is OpenAI `gpt-6-astra`** (Fireworks account suspended at its spending cap; with `GLANCE_PROVIDER` unset the app uses `glm-5p3` on Fireworks). Serving a LoRA needs an hourly-billed dedicated deployment. LoRA latency is measured inside the training session, which is not serving latency, and is labeled as such.
 - **One LoRA per person is the roadmap, not a result.** We have no honest per-user data from today.
 - Calibrates and drives the primary display only.
 - Dense or canvas-based pages expose few clickable elements, so there is less for the model to choose from.
@@ -136,7 +149,6 @@ macOS permissions: Camera, Accessibility and Microphone (details in `apps/deskto
 ```bash
 pnpm desktop                            # the app
 GLANCE_FAKE_GAZE=mouse pnpm desktop     # the mouse stands in for the eyes (no camera)
-pnpm web                                # landing + results
 pnpm test                               # all test suites
 ```
 
@@ -156,7 +168,7 @@ Turborepo + pnpm. A package can be written in any language; Turbo sees it throug
 | Path | Language | What |
 |---|---|---|
 | `apps/desktop` | TypeScript (Electron, React, Tailwind v4, shadcn) | The product |
-| `apps/web` | TypeScript (Next.js) | Landing + results page |
+| `apps/web` | TypeScript (Next.js) | **Placeholder, not built** (an empty package so the workspace layout is ready); results live in `results/` and this README |
 | `packages/gaze` | TypeScript | Iris and face features, calibration, smoothing, gestures |
 | `packages/brain` | TypeScript | Calls the model on Fireworks to pick the element |
 | `packages/contracts` | JSON Schema + TypeScript | Schemas, the shared intent prompt, golden fixture |
