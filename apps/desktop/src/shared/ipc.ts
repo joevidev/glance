@@ -1,4 +1,8 @@
 // Typed IPC contract between main, preload and renderers. Keys never cross this boundary.
+import type { AgentState, ConfirmRequest } from './agent'
+import type { TypingEvents, TypingInvoke } from './typing'
+import type { ProfileInvoke } from './profile-types'
+import type { SpeechReply, VoiceClientCode, VoiceResult } from './voice'
 
 export interface Settings {
   /** Tracking paused: the cursor and gestures are ignored. Toggle with Alt+Shift+P. */
@@ -63,7 +67,7 @@ export interface IntentResult {
   modelElement: ElementLite | null
 }
 
-export interface InvokeMap {
+export interface InvokeMap extends TypingInvoke, ProfileInvoke {
   'app:info': [void, AppInfo]
   'input:status': [void, InputStatus]
   'input:requestAccess': [void, boolean]
@@ -80,11 +84,16 @@ export interface InvokeMap {
   'browse:reload': [void, void]
   'intent:run': [{ command: string; source: 'typed' | 'voice' }, IntentResult]
   'intent:last': [void, IntentResult | null]
-  'speech:transcribe': [{ audio: ArrayBuffer; mime: string }, { text: string; error?: string }]
+  'speech:transcribe': [{ audio: ArrayBuffer; mime: string; durationMs?: number; stopAt?: number }, SpeechReply]
   'assets:ready': [void, { ready: boolean; error?: string }]
   'win:show': ['main' | 'browse', void]
   'perm:media': [{ kind: 'camera' | 'microphone' }, string]
   'perm:openSettings': [string, void]
+  'agent:run': [{ command: string; source: 'typed' | 'voice' }, AgentState]
+  'agent:confirm': [{ id: number; ok: boolean }, boolean]
+  'agent:state': [void, AgentState | null]
+  'agent:voice': [boolean | undefined, boolean]
+  'agent:demo': [void, void]
 }
 
 export interface GazeMsg {
@@ -112,6 +121,7 @@ export interface SendMap {
   'gesture': GestureMsg
   'engine:status': EngineStatus
   'ptt:state': { recording: boolean }
+  'voice:client-error': { code: VoiceClientCode; detail?: string }
 }
 
 export interface OverlayState {
@@ -125,16 +135,20 @@ export interface OverlayState {
   paused: boolean
   fake: boolean
   dragging: boolean
+  /** Assistant confirm card (an irreversible step waits for a wink or Enter). */
+  confirm?: ConfirmRequest | null
 }
 
-export interface EventMap {
+export interface EventMap extends TypingEvents {
   'settings:changed': Settings
   'ptt:toggle': void
   'intent:result': IntentResult
+  'voice:result': VoiceResult
   'overlay:state': OverlayState
   'input:status': InputStatus
   'toast': { text: string; sub?: string }
   'browse:url': { url: string; title: string; canBack: boolean }
+  'agent:state': AgentState
 }
 
 export interface GlanceAPI {

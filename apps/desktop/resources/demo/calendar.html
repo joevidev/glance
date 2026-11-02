@@ -1,0 +1,35 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Calendar · Glance demo mail</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="style.css"></head><body>
+<div id="nav"></div>
+<main>
+ <h1>Calendar · November 2026</h1>
+ <div class="cols">
+  <section class="glass mail" aria-label="Upcoming events"><div class="meta">Upcoming</div><div id="events" style="margin-top:8px"></div></section>
+  <section class="glass mail" aria-label="New event form">
+   <h2 style="font-size:18px;margin:0 0 4px">New event</h2>
+   <label for="t">Event title</label><input type="text" id="t" aria-label="Event title" placeholder="Title">
+   <label for="d">Event date</label><input type="text" id="d" aria-label="Event date" placeholder="YYYY-MM-DD">
+   <label for="h">Event time</label><input type="text" id="h" aria-label="Event time" placeholder="HH:MM, 24 hour">
+   <label for="i">Invitee email</label><input type="text" id="i" aria-label="Invitee email" placeholder="name@example.com">
+   <div class="tools" style="margin-top:14px"><button class="pill pri" id="go">Save event</button></div>
+   <div class="status" id="saved" role="status"></div>
+  </section>
+ </div>
+</main>
+<script src="data.js"></script><script>
+document.getElementById('nav').innerHTML = nav('calendar')
+const base = [{ title: 'Team standup', date: '2026-11-02', time: '10:00', invitee: 'team@glance.example' }, { title: 'Dentist', date: '2026-11-04', time: '08:30', invitee: '' }]
+const draw = () => { document.getElementById('events').innerHTML = [...base, ...store.get('events', [])].map((x) =>
+  `<div class="ev"><b>${x.title}</b><small>${x.date} · ${x.time}${x.invitee ? ' · ' + x.invitee : ''}</small></div>`).join('') }
+draw()
+document.getElementById('go').onclick = () => {
+  const v = (id) => document.getElementById(id).value.trim()
+  const ev = { title: v('t'), date: v('d'), time: v('h'), invitee: v('i') }
+  if (!ev.title || !/^\d{4}-\d{2}-\d{2}$/.test(ev.date) || !/^\d{2}:\d{2}$/.test(ev.time)) {
+    const s = document.getElementById('saved'); s.textContent = 'Need a title, a date as YYYY-MM-DD and a time as HH:MM'; s.dataset.ok = '0'; s.classList.add('show'); return
+  }
+  store.set('events', [...store.get('events', []), ev]); draw()
+  const s = document.getElementById('saved'); s.dataset.ok = '1'; s.dataset.event = JSON.stringify(ev)
+  s.textContent = 'Saved: ' + ev.title + ' · ' + ev.date + ' · ' + ev.time + ' · ' + ev.invitee; s.classList.add('show')
+}
+</script></body></html>

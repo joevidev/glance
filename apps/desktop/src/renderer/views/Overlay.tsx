@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Mic, MousePointerClick, MousePointer2, MoveDown, MoveUp, Hand, Square } from 'lucide-react'
+import { Keyboard, Mic, MousePointerClick, MousePointer2, MoveDown, MoveUp, Hand, Square } from 'lucide-react'
 import type { OverlayState } from '../../shared/ipc'
+import { ConfirmCard } from '../components/agent/ConfirmCard'
 
 const EMPTY: OverlayState = { gaze: null, dwell: 0, ring: null, toast: null, radial: null, recording: false, paused: false, fake: false, dragging: false }
 
@@ -12,6 +13,7 @@ const ICONS: Record<string, typeof Mic> = {
   scroll_up: MoveUp,
   scroll_down: MoveDown,
   mic: Mic,
+  type: Keyboard,
 }
 
 function Ring({ p, size = 60 }: { p: number; size?: number }) {
@@ -119,6 +121,8 @@ export function Overlay() {
           )}
         </div>
       )}
+
+      <ConfirmCard req={s.confirm} />
 
       {/* status pills */}
       <div className="absolute right-5 top-5 flex flex-col items-end gap-2">

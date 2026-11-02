@@ -7,11 +7,17 @@ import { loadEnv } from './env'
 import { InputHelper } from './input'
 import { assetState, ensureModel, handleScheme, registerScheme } from './assets'
 import { Browse } from './browse'
+import { decideDesktop, useAxNow } from './features/ax'
 import { Controller } from './controller'
 import { createMainWindow, createOverlayWindow } from './windows'
 import { clearCalibration, loadCalibration, loadSettings, saveCalibration, saveSettings } from './store'
 import { transcribe } from './speech'
+import { createVoice, type Voice } from './features/voice/handler'
+import type { VoiceClientCode } from '../shared/voice'
 import { createTray } from './tray'
+import { registerAgent } from './features/agent'
+import { registerTyping } from './features/typing'
+import { registerProfileIpc } from './features/profile'
 import type { AppInfo, EventMap, GazeMsg, GestureMsg, EngineStatus, IntentResult, InvokeMap, Settings } from '../shared/ipc'
 
 // A tracker window behind other windows must keep running (macOS occlusion would freeze rAF and the camera loop).
@@ -24,7 +30,8 @@ const FAKE = (process.env.GLANCE_FAKE_GAZE ?? '').toLowerCase() === 'mouse'
 const SHOT = process.env.GLANCE_SCREENSHOT === '1'
 const SIM = process.env.GLANCE_SIM_CAMERA === '1'
 // test runs never touch the real calibration or settings
-if (SHOT || SIM) app.setPath('userData', join(tmpdir(), 'glance-test-userdata'))
+// GLANCE_USERDATA (tests only) isolates parallel runs from each other
+if (SHOT || SIM || process.env.GLANCE_USERDATA) app.setPath('userData', process.env.GLANCE_USERDATA || join(tmpdir(), 'glance-test-userdata'))
 
 let mainWin: BrowserWindow | null = null
 let overlayWin: BrowserWindow | null = null
@@ -37,6 +44,7 @@ const trusted = new Set<number>()
 const input = new InputHelper()
 let controller: Controller
 let browse: Browse
+let agent: import('./features/agent/runtime').AgentRuntime
 
 function broadcast<K extends keyof EventMap>(ch: K, msg: EventMap[K]): void {
   for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed()) w.webContents.send(ch, msg)
@@ -91,8 +99,10 @@ function makeMain(): BrowserWindow {
 }
 
 async function runIntent(command: string, source: 'typed' | 'voice', gazeScreen: { x: number; y: number } | null): Promise<IntentResult> {
-  if (!browse.isFrontAndVisible()) browse.open()
-  const r = await browse.decide({ command, source, gazeScreen, settings })
+  // GLANCE_ELEMENTS=auto|ax|dom: another app in front -> Accessibility elements (features/ax), Glance's own window -> DOM extractor
+  const viaAx = useAxNow()
+  if (!viaAx && !browse.isFrontAndVisible()) browse.open()
+  const r = viaAx ? await decideDesktop({ command, source, gazeScreen, settings }) : await browse.decide({ command, source, gazeScreen, settings })
   lastIntent = r
   broadcast('intent:result', r)
   if (r.error && !r.element) {
@@ -104,16 +114,18 @@ async function runIntent(command: string, source: 'typed' | 'voice', gazeScreen:
     controller.toast('No element matched', `"${command}"`)
     return r
   }
-  const rect = browse.toScreen(el.box)
+  const rect = viaAx ? { x: el.box.x, y: el.box.y, width: el.box.w, height: el.box.h } : browse.toScreen(el.box)
   if (!rect) return r
   controller.showRing({ x: rect.x, y: rect.y, w: rect.width, h: rect.height, name: el.name, role: el.role }, 3200)
   controller.toast(`${el.role} “${el.name.slice(0, 46)}”`, `${r.latencyMs} ms · ${r.pickMode === 'nearest' ? 'nearest to gaze' : 'model pick'}`, 3000)
   controller.holdCursor(2200)
   // make sure the page is really on top before the real click lands on it
-  app.focus({ steal: true })
-  browse.win?.show()
-  browse.win?.moveTop()
-  browse.win?.focus()
+  if (!viaAx) {
+    app.focus({ steal: true })
+    browse.win?.show()
+    browse.win?.moveTop()
+    browse.win?.focus()
+  }
   await sleep(550) // let the ring read before the click
   await input.moveAwait(rect.x + rect.width / 2, rect.y + rect.height / 2)
   await sleep(120)
@@ -121,17 +133,20 @@ async function runIntent(command: string, source: 'typed' | 'voice', gazeScreen:
   return r
 }
 
-let pttStopAt = 0
-async function handleVoice(audio: ArrayBuffer, mime: string): Promise<{ text: string; error?: string }> {
-  const gaze = controller.gazeAround(pttStopAt || Date.now())
-  const t = await transcribe(audio, mime)
-  if (t.error || !t.text) {
-    controller.toast(t.error ? 'Speech failed' : 'Did not catch that', t.error?.slice(0, 90) ?? 'Try again or type the command')
-    return t
-  }
-  controller.toast(`“${t.text}”`, 'Heard', 1800)
-  void runIntent(t.text, 'voice', gaze)
-  return t
+// voice path: transcription, normalization, gaze-at-stop and error toasts live in features/voice
+let voiceH: Voice | null = null
+function voice(): Voice {
+  return (voiceH ??= createVoice({
+    toast: (t, sub, ms) => controller.toast(t, sub, ms),
+    gazeSamples: () => controller.gazeSamples(),
+    latestGaze: () => controller.gaze,
+    transcribe,
+    runIntent: (c, _s, g) => (process.env.GLANCE_VOICE_E2E ? undefined : agent.voiceMode ? agent.run(c, 'voice', g) : runIntent(c, 'voice', g)),
+    emit: (r) => {
+      broadcast('voice:result', r)
+      if (process.env.GLANCE_VOICE_E2E) console.log('[voice-e2e]', JSON.stringify(r))
+    },
+  }))
 }
 
 function registerIpc(): void {
@@ -163,7 +178,7 @@ function registerIpc(): void {
   h('browse:reload', () => browse.reload())
   h('intent:run', (a) => runIntent(a.command, a.source, controller.gaze))
   h('intent:last', () => lastIntent)
-  h('speech:transcribe', (a) => handleVoice(a.audio, a.mime))
+  h('speech:transcribe', (a) => voice().handle(a))
   h('assets:ready', () => assetState())
   h('win:show', (w) => showWindow(w))
   h('perm:media', async ({ kind }) => {
@@ -183,11 +198,12 @@ function registerIpc(): void {
 
   ipcMain.on('gaze:frame', (_e, m: GazeMsg) => controller.onGazeFrame(m))
   ipcMain.on('gesture', (_e, g: GestureMsg) => void controller.onGesture(g))
+  ipcMain.on('voice:client-error', (_e, m: { code: VoiceClientCode; detail?: string }) => voice().clientError(m.code, m.detail))
   ipcMain.on('engine:status', (_e, s: EngineStatus) => {
     engine = s
   })
   ipcMain.on('ptt:state', (_e, s: { recording: boolean }) => {
-    if (!s.recording) pttStopAt = Date.now()
+    voice().onRecording(s.recording)
     controller.recording = s.recording
     controller.push(true)
   })
@@ -195,6 +211,7 @@ function registerIpc(): void {
 
 function toggleRecording(): void {
   if (!mainWin || mainWin.isDestroyed()) return
+  if (!controller.recording) voice().pressStart()
   mainWin.webContents.send('ptt:toggle')
 }
 
@@ -225,8 +242,12 @@ app.whenReady().then(async () => {
   browse = new Browse({ onResult: () => {} })
   browse.debug = settings.debug
   registerIpc()
+  registerProfileIpc()
+  agent = registerAgent({ browse, controller, input, outDir: join(app.getAppPath(), '.screens') })
+  registerTyping({ browse, controller, input, outDir: join(app.getAppPath(), '.screens') })
 
   mainWin = makeMain()
+  if (process.env.GLANCE_VOICE_E2E) void import('./features/voice/e2e').then((m) => m.driveVoiceE2E(mainWin!, Number(process.env.GLANCE_VOICE_E2E) || 2500))
   overlayWin = createOverlayWindow()
   trusted.add(overlayWin.webContents.id)
   controller.onOverlay = (s) => {

@@ -48,15 +48,75 @@ export async function runSimFlow(o: { main: () => BrowserWindow | null; overlay:
   }
   await sleep(800)
   await shot('4-fit')
+  // validation on unseen points -> verdict -> fine-tune (fullscreen rounds are automatic with the synthetic camera)
+  await waitFor('Validate my eyes')
+  const tv = Date.now()
+  while (Date.now() - tv < 60000) {
+    const txt = (await js('document.body.innerText')) as string
+    if (/Eye validation/i.test(txt)) {
+      console.log('FLOW validation:', txt.replace(/\s+/g, ' ').slice(0, 260))
+      break
+    }
+    await sleep(500)
+  }
+  await sleep(800)
+  await shot('4b-validation')
+  if (await waitFor('Re-tune anyway', 4000) || (await waitFor('Fine-tune my eyes', 1500))) {
+    const tt = Date.now()
+    while (Date.now() - tt < 60000) {
+      const txt = (await js('document.body.innerText')) as string
+      if (/Fine-tune result/i.test(txt)) {
+        console.log('FLOW fine-tune:', txt.replace(/\s+/g, ' ').slice(0, 360))
+        break
+      }
+      await sleep(500)
+    }
+    await sleep(800)
+    await shot('4c-finetune')
+  }
   await waitFor('Continue to gestures')
   await sleep(1000)
   await shot('5-gestures')
   await waitFor('Skip')
+  // Look and wink: scripted winker with the synthetic camera
+  await sleep(1500)
+  await shot('5b-game-intro')
+  await waitFor('Start')
+  await sleep(5000)
+  await shot('5c-game-playing')
+  const tg = Date.now()
+  while (Date.now() - tg < 90000) {
+    const txt = (await js('document.body.innerText')) as string
+    if (/median time to wink/i.test(txt)) {
+      console.log('FLOW game:', txt.replace(/\s+/g, ' ').slice(0, 200))
+      break
+    }
+    await sleep(500)
+  }
+  await shot('5d-game-done')
+  await waitFor('Finish setup')
   await sleep(2500)
   const gazeBefore = o.controller.gaze
   await sleep(1500)
   await shot('6-dashboard')
   await shot('7-overlay-live', o.overlay())
+  // dashboard "Re-tune eyes (30 s)": validation, refit and fresh points in one fullscreen session
+  if (await waitFor('Re-tune eyes', 4000)) {
+    const tr = Date.now()
+    while (Date.now() - tr < 90000) {
+      const txt = (await js('document.body.innerText')) as string
+      if (/Fine-tune result/i.test(txt)) {
+        console.log('FLOW retune:', txt.replace(/\s+/g, ' ').slice(0, 420))
+        break
+      }
+      await sleep(500)
+    }
+    await sleep(800)
+    await shot('8-retune')
+    await waitFor('Done')
+    await sleep(1500)
+    await shot('9-dashboard-after-retune')
+  }
   const file = join(o.userData, 'calibration', 'gaze.calib.json')
   console.log('FLOW calibration saved:', existsSync(file), existsSync(file) ? statSync(file).size + ' bytes' : '')
   console.log('FLOW gaze reaches main:', !!o.controller.gaze, JSON.stringify(o.controller.gaze ?? gazeBefore))

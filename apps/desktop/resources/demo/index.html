@@ -1,0 +1,9 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Inbox · Glance demo mail</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="style.css"></head><body>
+<div id="nav"></div>
+<main><h1>Inbox</h1><div id="list"></div></main>
+<script src="data.js"></script><script>
+document.getElementById('nav').innerHTML = nav('inbox')
+document.getElementById('list').innerHTML = EMAILS.map((e) =>
+  `<a class="row glass" href="email.html?id=${e.id}" data-id="${e.id}"><b>${e.from}</b><span class="subj">${e.subject} <i>${e.preview}</i></span><small>${e.time}</small></a>`).join('')
+</script></body></html>

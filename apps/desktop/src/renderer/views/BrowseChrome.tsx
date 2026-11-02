@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { VoiceDebug } from '../components/voice/VoiceDebug'
 import { ArrowLeft, Bug, Loader2, Mic, RotateCw, Send } from 'lucide-react'
 import { Button } from '@glance/ui/components/button'
 import { Badge } from '@glance/ui/components/badge'
@@ -7,6 +8,9 @@ import { Mark } from '@glance/ui/components/mark'
 import { cn } from '@glance/ui/lib/utils'
 import type { IntentResult } from '../../shared/ipc'
 import { useAppInfo, useEvent, useSettings } from '../lib/hooks'
+import { AgentPanel } from '../components/agent/AgentPanel'
+import { TypingStatsCard } from '../components/typing/TypingStats'
+import { GazeErrorLine } from '../components/onboarding/GazeErrorLine'
 
 const CHIPS = ['open that', 'click this one', 'reply', 'the invoice']
 
@@ -112,11 +116,13 @@ export function BrowseChrome() {
         <div className="flex-1" />
         {settings?.debug && (
           <aside className="flex shrink-0 flex-col gap-3 overflow-y-auto p-3 pl-0" style={{ width: 372 }}>
+            <AgentPanel />
             <div className="glass glass-md flex flex-col gap-3 p-4">
               <div className="relative rounded-2xl border border-white/20 bg-black/40 px-3 py-2">
                 <div className="eyebrow !text-[10px]">Model answering</div>
                 <div className="font-mono text-[13px] text-white">{info ? `${info.provider} · ${info.model}` : '…'}</div>
               </div>
+              <GazeErrorLine />
               <div className="relative flex items-center justify-between">
                 <span className="eyebrow">Pick used</span>
                 <Badge>{settings.pick === 'model' ? 'Model' : 'Nearest'}</Badge>
@@ -143,6 +149,7 @@ export function BrowseChrome() {
                 <span className="eyebrow">Last decision</span>
                 {res && <Badge>{res.source}</Badge>}
               </div>
+              <VoiceDebug />
               {!res ? (
                 <p className="relative text-sm text-white/50">Run a command. The model’s pick, latency and raw reply show up here.</p>
               ) : (
@@ -172,6 +179,8 @@ export function BrowseChrome() {
                 </div>
               )}
             </div>
+
+            <TypingStatsCard />
 
             <div className="glass glass-md p-4">
               <div className="relative eyebrow mb-2">Try</div>

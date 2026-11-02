@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useVoiceRecorder, type VoiceUi } from '../components/voice/useVoiceRecorder'
+import { VoiceStatus } from '../components/voice/VoiceStatus'
 import { AnimatePresence, motion } from 'motion/react'
 import { Check, Camera, Globe, Keyboard, Mic, MousePointer2, RotateCcw, ShieldCheck, X } from 'lucide-react'
 import { GestureCalibrator, type GazeCalibration, type GazeFrame } from '@glance/gaze'
@@ -15,8 +17,12 @@ import { useEngineStatus } from '../lib/useEngine'
 import { useAppInfo, useEvent, useInputStatus, useSettings } from '../lib/hooks'
 import { CameraPreview } from '../components/CameraPreview'
 import { CalibrationRun, GESTURE_STEPS, collectGesture, type CalibResult } from './Calibrate'
+import { ValidateFlow } from '../components/onboarding/ValidateFlow'
+import { LookAndWink } from '../components/onboarding/LookAndWink'
+import { ProfileCard } from '../components/onboarding/ProfileCard'
+import { recordCalibration, recordGestures } from '../lib/profile'
 
-type Step = 'boot' | 'welcome' | 'camera' | 'calibrating' | 'fit' | 'gestures' | 'dashboard'
+type Step = 'boot' | 'welcome' | 'camera' | 'calibrating' | 'fit' | 'validate' | 'retune' | 'gestures' | 'game' | 'dashboard'
 
 const quality = (px: number): { label: string; note: string } => {
   if (!Number.isFinite(px)) return { label: 'Failed', note: 'The fit did not converge. Sit closer, light your face from the front, and try again.' }
@@ -34,9 +40,8 @@ export function MainApp() {
   const [step, setStep] = useState<Step>('boot')
   const [saved, setSaved] = useState<SavedCalibration | null>(null)
   const [pending, setPending] = useState<{ calib: GazeCalibration; fit: CalibResult['fit'] } | null>(null)
-  const [heard, setHeard] = useState<string | null>(null)
-  const [recording, setRecording] = useState(false)
-  const [mic, setMic] = useState<string>('unknown')
+  const voice = useVoiceRecorder()
+  const { heard, recording, mic, toggle: toggleRecording } = voice
   const screenSize = info ? { width: info.display.w, height: info.display.h } : { width: window.screen.width, height: window.screen.height }
 
   // load calibration, start the camera
@@ -55,46 +60,7 @@ export function MainApp() {
     })()
   }, [])
 
-  // push to talk (Option+Space or the radial menu mic)
-  const rec = useRef<{ mr: MediaRecorder; chunks: Blob[]; stream: MediaStream } | null>(null)
-  const toggleRecording = useCallback(async () => {
-    if (rec.current) {
-      rec.current.mr.stop()
-      return
-    }
-    try {
-      const p = await window.glance.invoke('perm:media', { kind: 'microphone' })
-      setMic(p)
-      if (p !== 'granted') {
-        setHeard('Microphone permission: ' + p)
-        return
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mr = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm' })
-      const chunks: Blob[] = []
-      mr.ondataavailable = (e) => e.data.size && chunks.push(e.data)
-      mr.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop())
-        rec.current = null
-        setRecording(false)
-        window.glance.send('ptt:state', { recording: false })
-        const blob = new Blob(chunks, { type: mr.mimeType })
-        if (blob.size < 1500) return setHeard('Too short')
-        const buf = await blob.arrayBuffer()
-        setHeard('Transcribing…')
-        const r = await window.glance.invoke('speech:transcribe', { audio: buf, mime: mr.mimeType })
-        setHeard(r.text ? `“${r.text}”` : (r.error ?? 'Did not catch that'))
-      }
-      rec.current = { mr, chunks, stream }
-      mr.start()
-      setRecording(true)
-      window.glance.send('ptt:state', { recording: true })
-      setTimeout(() => rec.current?.mr === mr && mr.state === 'recording' && mr.stop(), 12000)
-    } catch (e) {
-      setHeard('Microphone error: ' + (e instanceof Error ? e.message : String(e)))
-    }
-  }, [])
-  useEvent('ptt:toggle', () => void toggleRecording())
+  // push to talk (Option+Space or the radial menu mic): components/voice
 
   const startCalibration = async () => {
     setStep('camera')
@@ -132,7 +98,19 @@ export function MainApp() {
     setSaved(s)
     engine.applyCalibration(s)
     engine.driving = true
-    setStep('dashboard')
+    void recordGestures(!!info?.simCamera, screenSize, s)
+    setStep(flow.current === 'dash' ? 'dashboard' : 'game')
+  }
+
+  // personal profile: validation round, fine-tune and the Look and wink game (components/onboarding)
+  const flow = useRef<'onboard' | 'dash'>('onboard')
+  const onTuned = (calib: GazeCalibration, fit: CalibResult['fit']) => {
+    if (step === 'retune' && saved) {
+      const s: SavedCalibration = { ...saved, calib: calib.toJSON(), looErrorPx: fit.looErrorPx, savedAt: new Date().toISOString() }
+      void window.glance.invoke('calib:save', s).then(() => recordCalibration(!!info?.simCamera, screenSize, s))
+      setSaved(s)
+      engine.applyCalibration(s)
+    } else setPending({ calib, fit })
   }
 
   return (
@@ -152,7 +130,10 @@ export function MainApp() {
           {step === 'welcome' && <Welcome info={info} input={input} status={status} onNext={startCalibration} onFake={() => setStep('dashboard')} />}
           {step === 'camera' && <CameraStep status={status} onBack={() => setStep(saved ? 'dashboard' : 'welcome')} onNext={beginFullscreenCalibration} />}
           {step === 'calibrating' && <CalibrationRun screen={screenSize} onDone={onCalibDone} />}
-          {step === 'fit' && pending && <FitStep fit={pending.fit} onRetry={beginFullscreenCalibration} onNext={() => setStep('gestures')} />}
+          {step === 'fit' && pending && <FitStep simulated={!!info?.simCamera} fit={pending.fit} onRetry={beginFullscreenCalibration} onNext={() => setStep('validate')} />}
+          {step === 'validate' && pending && <ValidateFlow mode="onboarding" calib={pending.calib} screen={screenSize} simulated={!!info?.simCamera} onTuned={onTuned} onContinue={() => setStep('gestures')} onCancel={() => setStep('fit')} />}
+          {step === 'retune' && saved && <ValidateFlow mode="retune" calib={GazeCalibrationFrom(saved)} screen={screenSize} simulated={!!info?.simCamera} onTuned={onTuned} onContinue={() => { engine.driving = true; setStep('dashboard') }} onCancel={() => { engine.driving = true; setStep('dashboard') }} />}
+          {step === 'game' && saved && <LookAndWink saved={saved} display={info?.display ?? null} simulated={!!info?.simCamera} onDone={() => setStep('dashboard')} onSkip={() => setStep('dashboard')} />}
           {step === 'gestures' && <GestureStep onDone={finish} onSkip={() => void finish({ thresholds: engineDefaults(), works: { winkLeft: true, winkRight: true, mouthOpen: true, browsUp: true }, separation: {}, swapEyes: false })} />}
           {step === 'dashboard' && (
             <Dashboard
@@ -165,9 +146,13 @@ export function MainApp() {
               heard={heard}
               recording={recording}
               mic={mic}
-              onPtt={() => void toggleRecording()}
-              onRecalibrate={() => setStep('camera')}
+              onPtt={toggleRecording}
+              voice={voice}
+              onRecalibrate={() => { flow.current = 'onboard'; setStep('camera') }}
+              onRetune={() => { flow.current = 'dash'; engine.driving = false; setStep('retune') }}
+              onGame={() => { flow.current = 'dash'; engine.driving = false; setStep('game') }}
               onGestures={() => {
+                flow.current = 'dash'
                 engine.driving = false
                 if (saved) setPending({ calib: GazeCalibrationFrom(saved), fit: { ok: true, looErrorPx: saved.looErrorPx, trainErrorPx: 0, samples: 0 } })
                 setStep('gestures')
@@ -228,7 +213,7 @@ function CameraStep({ status, onBack, onNext }: { status: ReturnType<typeof useE
       <CameraPreview />
       <div className="flex flex-col gap-5">
         <div>
-          <div className="eyebrow mb-2">Step 1 of 3</div>
+          <div className="eyebrow mb-2">Step 1 of 4</div>
           <h2 className="headline text-4xl leading-tight">Can I see your eyes?</h2>
         </div>
         <p className="text-[15px] leading-relaxed text-white/60">The white rings should sit on your irises. Sit about an arm’s length away, face lit from the front, no window behind you. After calibration, keep the same seat.</p>
@@ -246,11 +231,11 @@ function CameraStep({ status, onBack, onNext }: { status: ReturnType<typeof useE
 }
 
 // ---------------------------------------------------------------- fit result
-function FitStep({ fit, onRetry, onNext }: { fit: CalibResult['fit']; onRetry: () => void; onNext: () => void }) {
+function FitStep({ fit, onRetry, onNext, simulated }: { simulated?: boolean; fit: CalibResult['fit']; onRetry: () => void; onNext: () => void }) {
   const q = quality(fit.ok ? fit.looErrorPx : Infinity)
   return (
     <div className="mx-auto flex h-full max-w-[640px] flex-col justify-center gap-6 px-8 pb-10">
-      <div className="eyebrow">Calibration result</div>
+      <div className="flex items-center justify-between"><div className="eyebrow">Calibration result</div>{simulated && <Badge className="border-white/50 bg-white/15 font-mono tracking-[0.12em]">SIMULATED · synthetic camera</Badge>}</div>
       <Card className="gap-5 p-8">
         <div className="relative flex items-end gap-4">
           <div className="font-mono text-7xl font-light tabular-nums leading-none">{fit.ok ? Math.round(fit.looErrorPx) : '—'}</div>
@@ -263,7 +248,7 @@ function FitStep({ fit, onRetry, onNext }: { fit: CalibResult['fit']; onRetry: (
       </Card>
       <div className="flex gap-3">
         <Button variant="glass" onClick={onRetry}><RotateCcw /> Recalibrate</Button>
-        <Button onClick={onNext} disabled={!fit.ok}>Continue to gestures</Button>
+        <Button onClick={onNext} disabled={!fit.ok}>Validate my eyes</Button>
       </div>
     </div>
   )
@@ -319,7 +304,7 @@ function GestureStep({ onDone, onSkip }: { onDone: (g: { thresholds: SavedCalibr
     return (
       <div className="mx-auto flex h-full max-w-[680px] flex-col justify-center gap-5 px-8 pb-10">
         <div>
-          <div className="eyebrow mb-2">Step 3 of 3</div>
+          <div className="eyebrow mb-2">Step 3 of 4</div>
           <h2 className="headline text-4xl">Gestures that work for you</h2>
         </div>
         <div className="flex flex-col gap-2.5">
@@ -342,7 +327,7 @@ function GestureStep({ onDone, onSkip }: { onDone: (g: { thresholds: SavedCalibr
       <CameraPreview />
       <div className="flex flex-col gap-5">
         <div>
-          <div className="eyebrow mb-2">Step 3 of 3 · {i + 1} / {GESTURE_STEPS.length}</div>
+          <div className="eyebrow mb-2">Step 3 of 4 · {i + 1} / {GESTURE_STEPS.length}</div>
           <h2 className="headline text-4xl">{step.title}</h2>
           <p className="mt-2 text-[15px] text-white/60">{step.hint}</p>
         </div>
@@ -387,8 +372,11 @@ function Dashboard(p: {
   heard: string | null
   recording: boolean
   mic: string
+  voice: VoiceUi
   onPtt: () => void
   onRecalibrate: () => void
+  onRetune: () => void
+  onGame: () => void
   onGestures: () => void
 }) {
   const { info, settings, set, input, status, saved } = p
@@ -437,9 +425,11 @@ function Dashboard(p: {
             <Button size="lg" variant={p.recording ? 'default' : 'glass'} onClick={p.onPtt}>
               <Mic /> {p.recording ? 'Stop & send' : 'Push to talk'}
             </Button>
-            <div className="min-w-0 flex-1 truncate text-[15px] text-white/70">{p.heard ?? 'Look at something, press Option+Space, say “open that”, press it again.'}</div>
+            <VoiceStatus voice={p.voice} />
           </div>
         </Card>
+
+        <ProfileCard refreshKey={saved?.savedAt} onRetune={p.onRetune} onGame={p.onGame} />
 
         <Card className="gap-3 p-6">
           <div className="relative eyebrow">Gestures</div>

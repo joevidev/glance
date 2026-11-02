@@ -12,6 +12,7 @@ const RADIAL_ITEMS = [
   { id: 'scroll_up', label: 'Scroll up' },
   { id: 'scroll_down', label: 'Scroll down' },
   { id: 'mic', label: 'Mic' },
+  { id: 'type', label: 'Type' },
 ]
 const RADIAL_R = 150 // distance of item centers from the radial center
 const RADIAL_HIT = 64 // item hit radius
@@ -44,6 +45,14 @@ export class Controller {
   private lastClickAt = 0
   onOverlay: (s: OverlayState) => void = () => {}
   onPtt: () => void = () => {}
+  /** Typing mode (features/typing): open the panel; while it is open the radial menu is off and gestures go to the hook first. */
+  onType: () => void = () => {}
+  radialSuspended = false
+  gestureHook: ((g: GestureMsg) => boolean) | null = null
+  /** Assistant confirm card (features/agent): a left wink confirms, a right wink cancels. */
+  private confirmCard: OverlayState['confirm'] = null
+  private confirmGesture: ((g: 'confirm' | 'cancel') => void) | null = null
+  private confirmedAt = 0
 
   constructor(private input: InputHelper, settings: Settings, fake: boolean) {
     this.settings = settings
@@ -68,13 +77,24 @@ export class Controller {
 
   setSettings(s: Settings): void {
     this.settings = s
-    if (s.paused) this.closeRadial()
+    if (s.paused) {
+      this.closeRadial()
+      if (this.dragging) void this.drop() // e2e-found: pausing mid-drag left the mouse button pressed
+    }
     this.push(true)
   }
 
   toast(text: string, sub?: string, ms = 2600): void {
     this.toastObj = { id: ++this.toastId, text, sub }
     this.toastUntil = Date.now() + ms
+    this.push(true)
+  }
+
+  /** Show (or clear with null) the glass confirm card. While it is up, winks answer it instead of clicking. */
+  setConfirm(req: { id: number; title: string; detail: string; actionName: string; hint: string } | null, onGesture?: (g: 'confirm' | 'cancel') => void): void {
+    this.confirmCard = req
+    this.confirmGesture = req ? (onGesture ?? null) : null
+    if (!req) this.confirmedAt = Date.now()
     this.push(true)
   }
 
@@ -90,6 +110,11 @@ export class Controller {
     if (pts.length === 0) return this.gaze
     const n = pts.length
     return { x: pts.reduce((a, h) => a + h.p.x, 0) / n, y: pts.reduce((a, h) => a + h.p.y, 0) / n }
+  }
+
+  /** Recent gaze samples (main-process clock, last 4 s) for the voice path's median-at-stop pick. */
+  gazeSamples(): readonly { ts: number; p: Pt }[] {
+    return this.hist
   }
 
   holdCursor(ms: number): void {
@@ -126,7 +151,7 @@ export class Controller {
     // dwell opens the radial menu, never a click
     const fired = dwell >= 1 && this.prevDwell < 1
     this.prevDwell = dwell
-    if (fired && !this.radial && !this.dragging) this.openRadial(p)
+    if (fired && !this.radial && !this.dragging && !this.radialSuspended) this.openRadial(p)
     if (this.radial) this.updateRadial(p, now)
     void ts
     this.push()
@@ -206,15 +231,20 @@ export class Controller {
       case 'mic':
         this.onPtt()
         break
+      case 'type':
+        this.onType()
+        break
     }
   }
 
   // ---------- gestures ----------
   async onGesture(g: GestureMsg): Promise<void> {
     if (this.settings.paused) return
+    if (this.gestureHook?.(g)) return
     const now = Date.now()
     switch (g.type) {
       case 'wink_left': {
+        if (this.confirmGesture) return void this.confirmGesture('confirm')
         if (this.dragging) return void this.drop()
         if (this.radial?.hover != null) return void this.commitRadial()
         await this.clickAtGaze('left', false, false)
@@ -222,15 +252,24 @@ export class Controller {
         break
       }
       case 'wink_right':
-        if (this.radial) return this.closeRadial()
+        if (this.confirmGesture) return void this.confirmGesture('cancel')
+        // e2e-found flake: a 1 s dwell opens the radial, and the wink that followed only closed it (no right click).
+        // Hovering an item = cancel it; no item hovered = close the radial and right-click as asked.
+        if (this.radial) {
+          const hovering = this.radial.hover !== null
+          this.closeRadial()
+          if (hovering) return
+        }
         await this.clickAtGaze('right', false, false)
         break
       case 'double_wink_left':
+        if (this.confirmGesture || Date.now() - this.confirmedAt < 1200) return
         // the first wink already clicked once: add only the second pair so it is exactly one double click
         await this.input.click('left', false, true)
         this.toast('Double click')
         break
       case 'double_wink_right':
+        if (this.confirmGesture || Date.now() - this.confirmedAt < 1200) return
         await this.input.click('right')
         break
       case 'mouth_open_start':
@@ -244,7 +283,7 @@ export class Controller {
         if (this.dragging) await this.drop()
         break
       case 'scroll': {
-        if (this.radial) return
+        if (this.radial) this.closeRadial() // e2e-found: an open radial used to swallow the scroll for up to 9 s
         const dy = Math.round((-g.velocity * Math.min(g.dtMs, 80)) / 1000)
         if (dy !== 0) void this.input.scroll(dy)
         break
@@ -264,6 +303,8 @@ export class Controller {
     // the point from just before the eyelid started closing
     const p = this.gazeAround(Date.now() - 250, 300) ?? this.gaze
     this.holdCursor(700)
+    // e2e-found: without Accessibility macOS drops the click silently; say so instead of failing quietly
+    if (!this.input.trusted) this.toast('Accessibility is off', 'Allow Glance in System Settings > Privacy & Security > Accessibility', 4000)
     if (p && !this.fake) await this.input.moveAwait(p.x, p.y)
     await this.input.click(button, double, second)
     if (p) this.showRing({ x: p.x - 28, y: p.y - 28, w: 56, h: 56, name: button === 'left' ? 'click' : 'right click', role: '' }, 600)
@@ -298,6 +339,7 @@ export class Controller {
       paused: this.settings.paused,
       fake: this.fake,
       dragging: this.dragging,
+      confirm: this.confirmCard,
     }
     const key = JSON.stringify(state)
     if (!force && key === this.lastKey) return
@@ -306,6 +348,7 @@ export class Controller {
   }
 
   stop(): void {
+    if (this.dragging) void this.input.up('left') // never quit with the mouse button held down
     if (this.fakeTimer) clearInterval(this.fakeTimer)
   }
 }

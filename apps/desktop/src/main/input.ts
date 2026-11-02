@@ -19,7 +19,8 @@ export class InputHelper {
   onStatus?: (s: InputStatus) => void
 
   binPath(): string {
-    return join(repoRoot(), 'packages/input/target/release/glance-input')
+    // GLANCE_INPUT_BIN (tests only): stand-in helper, e.g. one that reports Accessibility as missing
+    return process.env.GLANCE_INPUT_BIN || join(repoRoot(), 'packages/input/target/release/glance-input')
   }
 
   start(): void {

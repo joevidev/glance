@@ -1,0 +1,17 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Email · Glance demo mail</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="style.css"></head><body>
+<div id="nav"></div>
+<main>
+ <div class="tools"><a class="pill" href="index.html">Back to inbox</a><a class="pill" id="reply" href="#">Reply</a><button class="pill" id="archive">Archive</button></div>
+ <article class="mail glass" id="mail"></article>
+ <div class="status" id="archived" role="status">Archived</div>
+</main>
+<script src="data.js"></script><script>
+const e = byId(param('id'))
+document.title = e.subject + ' · Glance demo mail'
+document.getElementById('nav').innerHTML = nav('inbox')
+document.getElementById('reply').href = 'reply.html?id=' + e.id
+document.getElementById('mail').innerHTML = `<div class="meta">From: ${e.from} &lt;${e.addr}&gt;</div><div class="meta">To: Joel &lt;joel@glance.example&gt; · ${e.time}</div>
+  <h2>${e.subject}</h2>` + e.body.map((p) => typeof p === 'string' ? `<p>${p}</p>` : `<p id="${p.id}">${p.text}</p>`).join('')
+document.getElementById('archive').onclick = () => document.getElementById('archived').classList.add('show')
+</script></body></html>

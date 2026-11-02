@@ -1,0 +1,27 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Reply · Glance demo mail</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="style.css"></head><body>
+<div id="nav"></div>
+<main>
+ <div class="tools"><a class="pill" id="back" href="#">Back to email</a></div>
+ <section class="glass mail" id="compose">
+  <div class="meta" id="to"></div><div class="meta" id="subj"></div>
+  <label for="body">Reply message</label>
+  <textarea id="body" aria-label="Reply message" placeholder="Write your reply"></textarea>
+  <div class="tools" style="margin-top:14px"><button class="pill pri" id="go">Send reply</button></div>
+ </section>
+ <div class="status" id="sent" role="status">Sent</div>
+</main>
+<script src="data.js"></script><script>
+const e = byId(param('id'))
+document.getElementById('nav').innerHTML = nav('inbox')
+document.getElementById('back').href = 'email.html?id=' + e.id
+document.getElementById('to').textContent = 'To: ' + e.from + ' <' + e.addr + '>'
+document.getElementById('subj').textContent = 'Subject: Re: ' + e.subject
+document.getElementById('go').onclick = () => {
+  const text = document.getElementById('body').value.trim()
+  if (!text) { return }
+  store.set('sent', [...store.get('sent', []), { to: e.addr, subject: 'Re: ' + e.subject, text, at: Date.now() }])
+  document.getElementById('compose').style.display = 'none'
+  const s = document.getElementById('sent'); s.textContent = 'Sent'; s.dataset.text = text; s.classList.add('show')
+}
+</script></body></html>
