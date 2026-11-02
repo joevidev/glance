@@ -1,0 +1,7 @@
+{
+  "name": "@glance/input",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Rust: native mouse helper (move, click, scroll, drag) run as a child process by the desktop app",
+  "scripts": { "build": "cargo build --release", "test": "cargo test" }
+}
