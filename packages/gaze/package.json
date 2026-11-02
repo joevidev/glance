@@ -1,0 +1,10 @@
+{
+  "name": "@glance/gaze",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "check-types": "tsc --noEmit", "test": "vitest run --passWithNoTests" },
+  "dependencies": { "@mediapipe/tasks-vision": "latest" },
+  "devDependencies": { "@glance/typescript-config": "workspace:*", "typescript": "latest", "vitest": "latest" }
+}
