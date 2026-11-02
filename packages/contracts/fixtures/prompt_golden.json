@@ -1,0 +1,58 @@
+{
+  "case": {
+    "id": "golden-1",
+    "site": "example.com",
+    "split": "test",
+    "viewport": {
+      "w": 1280,
+      "h": 800
+    },
+    "gaze": {
+      "x": 812.4,
+      "y": 430.6
+    },
+    "sigma": 120,
+    "command": "open that",
+    "command_type": "deictic",
+    "answer": 15,
+    "elements": [
+      {
+        "id": 14,
+        "role": "link",
+        "name": "Re: Demo tomorrow at 3",
+        "box": {
+          "x": 100.2,
+          "y": 300.5,
+          "w": 600.4,
+          "h": 48.0
+        }
+      },
+      {
+        "id": 15,
+        "role": "link",
+        "name": "Re: \"Invoice\"  #4821",
+        "box": {
+          "x": 100,
+          "y": 380,
+          "w": 600,
+          "h": 48
+        }
+      },
+      {
+        "id": 16,
+        "role": "button",
+        "name": "Weekly update",
+        "box": {
+          "x": 100,
+          "y": 460,
+          "w": 600,
+          "h": 48
+        }
+      }
+    ]
+  },
+  "prompt_with_gaze": "You control a computer for someone who is looking at the screen and speaking. Pick the one element they mean.\n\nScreen: 1280x800 px.\nGaze point (noisy, it can be off by 100 to 200 px): (812, 431)\nCommand: \"open that\"\n\nElements (id, role, name, box as x,y,w,h):\n[14] link \"Re: Demo tomorrow at 3\" @100,300,600,48\n[15] link \"Re: 'Invoice' #4821\" @100,380,600,48\n[16] button \"Weekly update\" @100,460,600,48\n\nAnswer with JSON only, in this exact form: {\"target\": <element id>}",
+  "prompt_command_only": "You control a computer for someone who is speaking. Pick the one element they mean.\n\nScreen: 1280x800 px.\nCommand: \"open that\"\n\nElements (id, role, name, box as x,y,w,h):\n[14] link \"Re: Demo tomorrow at 3\" @100,300,600,48\n[15] link \"Re: 'Invoice' #4821\" @100,380,600,48\n[16] button \"Weekly update\" @100,460,600,48\n\nAnswer with JSON only, in this exact form: {\"target\": <element id>}",
+  "prompt_geo": "You control a computer for someone who is looking at the screen and speaking. Pick the one element they mean.\n\nScreen: 1280x800 px.\nGaze point (noisy, it can be off by 100 to 200 px): (812, 431)\nCommand: \"open that\"\n\nElements, nearest to the gaze point first (id, role, name, box as x,y,w,h, d = distance in px from the gaze point to the element, 0 if inside):\n[15] link \"Re: 'Invoice' #4821\" @100,380,600,48 d=112\n[16] button \"Weekly update\" @100,460,600,48 d=116\n[14] link \"Re: Demo tomorrow at 3\" @100,300,600,48 d=139\n\nAnswer with JSON only, in this exact form: {\"target\": <element id>}",
+  "completion": "{\"target\": 15}"
+}
