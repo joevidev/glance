@@ -1,0 +1,160 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+/* shared components live next to this file */
+@source "../components";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Glance liquid glass: black ground, white glass, no color. Source: deck/brand.md */
+:root {
+  --ink: #000;
+  --w: #fff;
+  --w80: rgba(255, 255, 255, 0.8);
+  --w60: rgba(255, 255, 255, 0.6);
+  --w40: rgba(255, 255, 255, 0.4);
+  --w20: rgba(255, 255, 255, 0.2);
+  --w14: rgba(255, 255, 255, 0.14);
+  --w10: rgba(255, 255, 255, 0.1);
+
+  /* shadcn semantic tokens, mapped to the glass palette (dark only) */
+  --background: #000;
+  --foreground: #fff;
+  --card: rgba(255, 255, 255, 0.06);
+  --card-foreground: #fff;
+  --popover: rgba(12, 12, 12, 0.85);
+  --popover-foreground: #fff;
+  --primary: #fff;
+  --primary-foreground: #000;
+  --secondary: rgba(255, 255, 255, 0.1);
+  --secondary-foreground: #fff;
+  --muted: rgba(255, 255, 255, 0.08);
+  --muted-foreground: rgba(255, 255, 255, 0.6);
+  --accent: rgba(255, 255, 255, 0.14);
+  --accent-foreground: #fff;
+  --destructive: rgba(255, 255, 255, 0.9);
+  --border: rgba(255, 255, 255, 0.14);
+  --input: rgba(255, 255, 255, 0.18);
+  --ring: rgba(255, 255, 255, 0.7);
+  --radius: 1.5rem;
+}
+
+@theme inline {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-w80: var(--w80);
+  --color-w60: var(--w60);
+  --color-w40: var(--w40);
+  --color-w20: var(--w20);
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: var(--radius);
+  --radius-xl: 2.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
+  }
+  ::selection {
+    background: rgba(255, 255, 255, 0.28);
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+  }
+}
+
+@layer components {
+  /* black ground with two blurred white blobs */
+  .glass-ground {
+    background:
+      radial-gradient(40vmax 40vmax at 12% 8%, rgba(255, 255, 255, 0.22), transparent 70%),
+      radial-gradient(46vmax 46vmax at 92% 96%, rgba(255, 255, 255, 0.16), transparent 70%), #000;
+  }
+
+  .glass {
+    position: relative;
+    border-radius: 2.5rem;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0.04) 60%, rgba(255, 255, 255, 0.09));
+    backdrop-filter: blur(34px) saturate(170%);
+    -webkit-backdrop-filter: blur(34px) saturate(170%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow:
+      inset 0 1.5px 0 rgba(255, 255, 255, 0.55),
+      inset 0 -1.5px 0 rgba(255, 255, 255, 0.07),
+      inset 1px 0 0 rgba(255, 255, 255, 0.12),
+      0 40px 90px -20px rgba(0, 0, 0, 0.75);
+  }
+  .glass::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 38%);
+    -webkit-mask: linear-gradient(#000, transparent 55%);
+    mask: linear-gradient(#000, transparent 55%);
+  }
+  .glass-md {
+    border-radius: 1.5rem;
+  }
+  .glass-pill {
+    border-radius: 999px;
+  }
+  /* darker glass for tags and toasts floating over arbitrary content */
+  .glass-dark {
+    background: linear-gradient(135deg, rgba(40, 40, 40, 0.78), rgba(8, 8, 8, 0.72));
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--w60);
+  }
+  .headline {
+    font-weight: 600;
+    letter-spacing: -0.035em;
+  }
+  .headline em {
+    font-style: normal;
+    color: var(--w60);
+  }
+}
