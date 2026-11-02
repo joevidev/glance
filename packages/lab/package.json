@@ -1,0 +1,15 @@
+{
+  "name": "@glance/lab",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Python benchmark + training. Turbo sees it through these scripts.",
+  "scripts": {
+    "sync": "uv sync",
+    "test": "uv run pytest -q",
+    "crawl": "uv run python -m glance_lab.data.crawl",
+    "dataset": "uv run python -m glance_lab.data.build",
+    "run-systems": "uv run python -m glance_lab.systems.run",
+    "stats": "uv run python -m glance_lab.stats.report",
+    "train": "uv run python -m glance_lab.train.run"
+  }
+}
