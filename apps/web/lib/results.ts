@@ -56,6 +56,10 @@ export const SYSTEM_KEYS = [
   "open_base",
   "frontier",
   "open_base_flash",
+  "frontier_rerun",
+  "frontier_sol",
+  "frontier_g54",
+  "frontier_g54mini",
 ] as const
 
 export const LABEL: Record<string, string> = {
@@ -68,6 +72,10 @@ export const LABEL: Record<string, string> = {
   open_base: "Open model (glm-5p3)",
   frontier: `Frontier (${summary.frontier_name})`,
   open_base_flash: "Open model, untrained flash",
+  frontier_rerun: `Frontier (${summary.frontier_name}), second run`,
+  frontier_sol: "OpenAI gpt-6.1-sol",
+  frontier_g54: "OpenAI gpt-5.4",
+  frontier_g54mini: "OpenAI gpt-5.4-mini",
   harness_vote: "Open model, 5-sample vote",
   open_base_geo: "Open model, distance-to-gaze prompt",
 }
@@ -81,6 +89,10 @@ export const SHORT: Record<string, string> = {
   open_base: "open base",
   frontier: "frontier",
   open_base_flash: "flash",
+  frontier_rerun: "frontier run 2",
+  frontier_sol: "gpt-6.1-sol",
+  frontier_g54: "gpt-5.4",
+  frontier_g54mini: "gpt-5.4-mini",
 }
 
 export const ranked = [...SYSTEM_KEYS]
@@ -121,4 +133,11 @@ export const PAIR_LABEL: Record<string, string> = {
   open_base_flash_vs_frontier: "Untrained flash vs frontier",
   frontier_vs_nearest: "Frontier vs nearest element",
   frontier_geo_vs_frontier: "Frontier, distance prompt vs plain prompt",
+  frontier_rerun_vs_frontier: "Frontier run 2 vs run 1 (same model, same cases: noise floor)",
+  frontier_sol_vs_frontier: "gpt-6.1-sol vs gpt-6-astra",
+  frontier_g54_vs_frontier: "gpt-5.4 vs gpt-6-astra",
+  frontier_g54mini_vs_frontier: "gpt-5.4-mini vs gpt-6-astra",
+  open_base_flash_vs_frontier_g54mini: "Untrained flash (open) vs gpt-5.4-mini",
+  open_base_flash_vs_frontier_sol: "Untrained flash (open) vs gpt-6.1-sol",
+  lora_vs_frontier_g54mini: "LoRA vs gpt-5.4-mini",
 }
