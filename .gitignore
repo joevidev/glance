@@ -1,0 +1,47 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# personal data: face/gaze calibration never leaves the laptop
+calibration/
+*.calib.json
+
+# js
+node_modules/
+.turbo/
+dist/
+out/
+.next/
+*.tsbuildinfo
+
+# python
+.venv/
+__pycache__/
+*.pyc
+
+# models downloaded at runtime
+*.task
+
+# raw crawl screenshots (dataset JSON is committed)
+data/sites/**/*.png
+
+# per-call API response caches (~3,200 tiny files). The evidence is results/rows/*.jsonl
+results/cache/
+results/cache_val/
+results/smoke/
+
+# python tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# app screenshots from GLANCE_SCREENSHOT runs
+.screens/
+
+# tooling
+.playwright-mcp/
+.claude/
+.idea/
+.vscode/
+.DS_Store

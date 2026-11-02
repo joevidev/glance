@@ -1,0 +1,21 @@
+{
+  "name": "glance",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.30.3",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "check-types": "turbo run check-types",
+    "test": "turbo run test",
+    "desktop": "turbo run dev --filter=@glance/desktop",
+    "web": "turbo run dev --filter=@glance/web",
+    "lab": "pnpm --filter @glance/lab"
+  },
+  "devDependencies": {
+    "turbo": "latest",
+    "typescript": "latest"
+  }
+}
