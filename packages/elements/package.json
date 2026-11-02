@@ -1,0 +1,7 @@
+{
+  "name": "@glance/elements",
+  "version": "0.0.0",
+  "private": true,
+  "description": "extract.js: one DOM element extractor for the benchmark crawl and the in-app browser",
+  "exports": { "./extract.js": "./extract.js" }
+}
