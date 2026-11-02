@@ -1,0 +1,225 @@
+{
+  "seed": 20261102,
+  "n_sites_train": 28,
+  "n_sites_test": 8,
+  "n_pages": 56,
+  "n_train": 2520,
+  "n_test": 360,
+  "test_sha256": "5233ce37c1a760b130e3ad6dd766f36096d724fbc8429a61f0989deaad8b38b3",
+  "test_sites": [
+    "craigslist.org",
+    "github.com",
+    "huggingface.co",
+    "linear.app",
+    "lobste.rs",
+    "npr.org",
+    "openstreetmap.org",
+    "w3schools.com"
+  ],
+  "train_sites": [
+    "anthropic.com",
+    "arxiv.org",
+    "cloudflare.com",
+    "data.gov",
+    "docker.com",
+    "fireworks.ai",
+    "google.com",
+    "gutenberg.org",
+    "mailchimp.com",
+    "mozilla.org",
+    "nasa.gov",
+    "notion.so",
+    "paulgraham.com",
+    "pypi.org",
+    "python.org",
+    "react.dev",
+    "scrapingcourse.com",
+    "slack.com",
+    "stackoverflow.com",
+    "stripe.com",
+    "tailwindcss.com",
+    "theguardian.com",
+    "toscrape.com",
+    "usa.gov",
+    "weather.gov",
+    "wikihow.com",
+    "wikipedia.org",
+    "ycombinator.com"
+  ],
+  "sigmas": {
+    "values_px": [
+      60,
+      120,
+      180
+    ],
+    "meaning": "per-axis Gaussian std of simulated gaze noise around the element center, clamped to viewport; cases are resampled so the answer box is within 2.5*sigma of the gaze point",
+    "justification": "webcam gaze error is ~100-200 px in published work (WebGazer, Papoutsaki et al. IJCAI 2016; WebEyeTrack 2025)",
+    "train_mix": {
+      "60": 871,
+      "120": 818,
+      "180": 831
+    },
+    "test_mix": {
+      "60": 122,
+      "120": 124,
+      "180": 114
+    }
+  },
+  "command_mix": {
+    "target_weights": {
+      "deictic": 0.3,
+      "role": 0.25,
+      "partial_name": 0.3,
+      "ordinal": 0.15
+    },
+    "train": {
+      "deictic": 798,
+      "ordinal": 361,
+      "partial_name": 735,
+      "role": 626
+    },
+    "test": {
+      "deictic": 95,
+      "ordinal": 66,
+      "partial_name": 103,
+      "role": 96
+    }
+  },
+  "caps_per_site": {
+    "train": 90,
+    "test": 45
+  },
+  "test_stats": {
+    "n": 360,
+    "nearest_is_answer_by_sigma": {
+      "60": 0.3525,
+      "120": 0.2742,
+      "180": 0.1754
+    },
+    "nearest_is_answer_overall": 0.2694,
+    "nearest_is_answer_by_command_type": {
+      "deictic": 0.2526,
+      "ordinal": 0.303,
+      "partial_name": 0.2816,
+      "role": 0.25
+    },
+    "command_matches_exactly_one_overall": 0.4167,
+    "command_matches_exactly_one_by_type": {
+      "deictic": 0.0,
+      "role": 0.0,
+      "partial_name": 0.8155,
+      "ordinal": 1.0
+    },
+    "oracle_nearest_among_command_matches_by_sigma": {
+      "60": 0.6475,
+      "120": 0.629,
+      "180": 0.5526
+    },
+    "oracle_nearest_center_among_command_matches_by_sigma": {
+      "60": 0.6639,
+      "120": 0.621,
+      "180": 0.5702
+    },
+    "nearest_center_is_answer_overall": 0.275,
+    "gaze_error_px_by_sigma": {
+      "60": {
+        "mean": 66.7,
+        "median": 60.1
+      },
+      "120": {
+        "mean": 131.8,
+        "median": 124.6
+      },
+      "180": {
+        "mean": 190.2,
+        "median": 174.7
+      }
+    },
+    "command_only_random_pick_expected_acc": 0.4564,
+    "command_only_random_pick_expected_acc_by_type": {
+      "deictic": 0.029,
+      "role": 0.0598,
+      "partial_name": 0.8719,
+      "ordinal": 1.0
+    },
+    "sigma_mix": {
+      "60": 122,
+      "120": 124,
+      "180": 114
+    },
+    "command_mix": {
+      "deictic": 95,
+      "ordinal": 66,
+      "partial_name": 103,
+      "role": 96
+    }
+  },
+  "train_stats": {
+    "n": 2520,
+    "nearest_is_answer_by_sigma": {
+      "60": 0.5396,
+      "120": 0.3667,
+      "180": 0.2575
+    },
+    "nearest_is_answer_overall": 0.3905,
+    "nearest_is_answer_by_command_type": {
+      "deictic": 0.4098,
+      "ordinal": 0.3712,
+      "partial_name": 0.4,
+      "role": 0.3658
+    },
+    "command_matches_exactly_one_overall": 0.3683,
+    "command_matches_exactly_one_by_type": {
+      "deictic": 0.0,
+      "role": 0.0288,
+      "partial_name": 0.7469,
+      "ordinal": 1.0
+    },
+    "oracle_nearest_among_command_matches_by_sigma": {
+      "60": 0.7313,
+      "120": 0.6467,
+      "180": 0.5884
+    },
+    "oracle_nearest_center_among_command_matches_by_sigma": {
+      "60": 0.76,
+      "120": 0.6479,
+      "180": 0.5884
+    },
+    "nearest_center_is_answer_overall": 0.4286,
+    "gaze_error_px_by_sigma": {
+      "60": {
+        "mean": 71.0,
+        "median": 67.0
+      },
+      "120": {
+        "mean": 134.4,
+        "median": 127.5
+      },
+      "180": {
+        "mean": 197.6,
+        "median": 186.6
+      }
+    },
+    "command_only_random_pick_expected_acc": 0.4301,
+    "command_only_random_pick_expected_acc_by_type": {
+      "deictic": 0.0446,
+      "role": 0.1165,
+      "partial_name": 0.836,
+      "ordinal": 1.0
+    },
+    "sigma_mix": {
+      "60": 871,
+      "120": 818,
+      "180": 831
+    },
+    "command_mix": {
+      "deictic": 798,
+      "ordinal": 361,
+      "partial_name": 735,
+      "role": 626
+    }
+  },
+  "locked": true,
+  "created_at": "2026-11-02T20:35:21+00:00",
+  "notes": "gaze is simulated; commands are templated; split by site"
+}
