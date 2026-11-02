@@ -1,0 +1,10 @@
+You control a computer for someone who is looking at the screen and speaking. Pick the one element they mean.
+
+Screen: {{width}}x{{height}} px.
+Gaze point (noisy, it can be off by 100 to 200 px): ({{gaze_x}}, {{gaze_y}})
+Command: "{{command}}"
+
+Elements (id, role, name, box as x,y,w,h):
+{{elements}}
+
+Answer with JSON only, in this exact form: {"target": <element id>}
