@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "glance/case",
+  "title": "Case",
+  "description": "One benchmark or training case: noisy gaze + a command + the elements on screen; answer is the intended element id. Split by site, never by case.",
+  "type": "object",
+  "required": ["id", "site", "split", "viewport", "gaze", "sigma", "command", "command_type", "elements", "answer"],
+  "properties": {
+    "id": { "type": "string" },
+    "site": { "type": "string", "description": "Group key for the split and the cluster bootstrap" },
+    "split": { "enum": ["train", "test"] },
+    "viewport": { "type": "object", "required": ["w", "h"], "properties": { "w": {"type":"integer"}, "h": {"type":"integer"} } },
+    "gaze": { "type": "object", "required": ["x", "y"], "properties": { "x": {"type":"number"}, "y": {"type":"number"} } },
+    "sigma": { "type": "number", "description": "Gaussian noise std in px used to draw the gaze point" },
+    "command": { "type": "string" },
+    "command_type": { "enum": ["deictic", "role", "partial_name", "ordinal"] },
+    "elements": { "type": "array", "items": { "$ref": "element.schema.json" } },
+    "answer": { "type": "integer", "description": "Element id the user means" }
+  }
+}

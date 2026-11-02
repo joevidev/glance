@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "glance/row",
+  "title": "Result row",
+  "description": "One saved row per case per system, in results/rows/<system>.jsonl",
+  "type": "object",
+  "required": ["id", "site", "system", "sigma", "answer", "pred", "score", "latency_ms", "cost_usd"],
+  "properties": {
+    "id": { "type": "string" },
+    "site": { "type": "string" },
+    "system": { "type": "string" },
+    "sigma": { "type": "number" },
+    "answer": { "type": "integer" },
+    "pred": { "type": ["integer", "null"] },
+    "score": { "enum": [0, 1] },
+    "latency_ms": { "type": ["number", "null"] },
+    "cost_usd": { "type": ["number", "null"] },
+    "raw": { "type": ["string", "null"], "description": "Raw model output, for auditing" }
+  }
+}

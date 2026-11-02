@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "glance/element",
+  "title": "Element",
+  "description": "One clickable thing on screen. Box is in CSS pixels, viewport-relative.",
+  "type": "object",
+  "required": ["id", "role", "name", "box"],
+  "properties": {
+    "id": { "type": "integer", "minimum": 0 },
+    "role": { "type": "string" },
+    "name": { "type": "string", "maxLength": 80 },
+    "box": {
+      "type": "object",
+      "required": ["x", "y", "w", "h"],
+      "properties": { "x": {"type":"number"}, "y": {"type":"number"}, "w": {"type":"number"}, "h": {"type":"number"} }
+    }
+  }
+}
