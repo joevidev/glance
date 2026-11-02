@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Inbox · Glance demo page</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  *{box-sizing:border-box;margin:0}
+  body{font:15px/1.4 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;background:#f4f4f5;color:#111}
+  header{display:flex;align-items:center;gap:18px;padding:14px 28px;background:#fff;border-bottom:1px solid #e4e4e7;position:sticky;top:0}
+  header b{font-size:18px;letter-spacing:-.02em}
+  header input{flex:1;max-width:520px;padding:9px 14px;border:1px solid #d4d4d8;border-radius:999px;font:inherit}
+  header a,header button{color:#111;text-decoration:none;padding:7px 14px;border-radius:999px;border:1px solid #d4d4d8;background:#fff;font:inherit;cursor:pointer}
+  main{max-width:880px;margin:26px auto;padding:0 20px 700px}
+  h1{font-size:22px;letter-spacing:-.03em;margin-bottom:14px}
+  .row{display:flex;align-items:center;gap:16px;padding:0 18px;height:54px;background:#fff;border:1px solid #e4e4e7;border-radius:12px;margin-bottom:6px;color:#111;text-decoration:none}
+  .row:hover{background:#fafafa}
+  .row b{width:150px;flex:none;font-weight:600}
+  .row span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row small{color:#71717a;width:62px;text-align:right}
+  .tools{display:flex;gap:8px;margin:18px 0}
+  .tools button{padding:9px 18px;border-radius:999px;border:1px solid #d4d4d8;background:#fff;font:inherit;cursor:pointer}
+  .tools button.pri{background:#111;color:#fff;border-color:#111}
+  #log{margin-top:20px;padding:14px 18px;background:#111;color:#fff;border-radius:12px;font:13px ui-monospace,Menlo,monospace}
+</style></head><body>
+<header><b>Mail</b><input aria-label="Search mail" placeholder="Search mail"><a href="#compose">Compose</a><button>Settings</button></header>
+<main>
+<h1>Inbox</h1>
+<div class="tools"><button class="pri">Reply</button><button>Archive</button><button>Delete</button><button>Mark as read</button></div>
+<a class="row" href="#a" data-m="Demo tomorrow at 3"><b>Maya Chen</b><span>Re: Demo tomorrow at 3 &mdash; can you confirm the room?</span><small>9:41</small></a>
+<a class="row" href="#b" data-m="Invoice 4821"><b>Billing</b><span>Invoice #4821 is ready &mdash; pay by Friday</span><small>9:12</small></a>
+<a class="row" href="#c" data-m="Weekly update"><b>Team Glance</b><span>Weekly update: benchmark numbers are in</span><small>8:55</small></a>
+<a class="row" href="#d" data-m="Lunch"><b>Sam Ortiz</b><span>Lunch on Thursday? The new place on Market</span><small>8:30</small></a>
+<a class="row" href="#e" data-m="Flight"><b>Airline</b><span>Your flight to Seattle &mdash; check in now</span><small>Yesterday</small></a>
+<a class="row" href="#f" data-m="Security"><b>Security</b><span>New sign-in from a Mac in San Francisco</span><small>Yesterday</small></a>
+<a class="row" href="#g" data-m="Photos"><b>Dana Lee</b><span>Photos from the offsite are up</span><small>Mon</small></a>
+<a class="row" href="#h" data-m="Standup"><b>Calendar</b><span>Standup moved to 10:15 tomorrow</span><small>Mon</small></a>
+<div id="log">Click log: (nothing yet)</div>
+</main>
+<script>
+  const log=document.getElementById('log');let n=0
+  document.addEventListener('click',e=>{const t=e.target.closest('a,button');if(!t)return;n++;log.textContent='Click log: #'+n+' '+(t.dataset.m||t.textContent.trim())+' @'+Math.round(e.clientX)+','+Math.round(e.clientY);document.title='Opened: '+(t.dataset.m||t.textContent.trim())})
+</script></body></html>

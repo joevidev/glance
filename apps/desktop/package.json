@@ -1,0 +1,48 @@
+{
+  "name": "@glance/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Glance desktop app: Electron + electron-vite + React 19 + Tailwind v4 + shadcn (liquid glass, black and white)",
+  "scripts": {
+    "dev": "pnpm --filter @glance/input build && electron-vite dev",
+    "start": "pnpm --filter @glance/input build && electron-vite preview",
+    "build": "electron-vite build",
+    "check-types": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "screens": "pnpm --filter @glance/input build && electron-vite build && GLANCE_SCREENSHOT=1 electron ."
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
+    "@glance/brain": "workspace:*",
+    "@glance/contracts": "workspace:*",
+    "@glance/elements": "workspace:*",
+    "@glance/gaze": "workspace:*",
+    "@glance/ui": "workspace:*",
+    "@mediapipe/tasks-vision": "^1.2.0",
+    "dotenv": "^18.0.9",
+    "electron": "^45.2.1",
+    "lucide-react": "^1.66.0",
+    "motion": "^14.9.0",
+    "openai": "^7.47.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@glance/typescript-config": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "electron-vite": "^6.0.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "latest",
+    "vite": "^8.3.5",
+    "vitest": "^5.1.0"
+  },
+  "main": "./out/main/index.js"
+}

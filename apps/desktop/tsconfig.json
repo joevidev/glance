@@ -1,0 +1,5 @@
+{
+  "extends": "@glance/typescript-config/react.json",
+  "compilerOptions": { "types": ["node"], "lib": ["ES2023", "DOM", "DOM.Iterable"] },
+  "include": ["src", "electron.vite.config.ts", "../../packages/contracts/src/raw.d.ts"]
+}
