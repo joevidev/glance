@@ -1,0 +1,10 @@
+{
+  "name": "@glance/brain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "check-types": "tsc --noEmit", "test": "vitest run --passWithNoTests" },
+  "dependencies": { "@glance/contracts": "workspace:*", "openai": "latest" },
+  "devDependencies": { "@glance/typescript-config": "workspace:*", "typescript": "latest", "vitest": "latest", "@types/node": "latest" }
+}

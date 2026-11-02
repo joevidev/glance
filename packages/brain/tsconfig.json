@@ -1,0 +1,1 @@
+{ "extends": "@glance/typescript-config/node.json", "include": ["src", "../contracts/src/raw.d.ts"] }
