@@ -1,0 +1,16 @@
+export type { Vec2, GazeFrame, LandmarkerResultLike, ScreenSize } from './types';
+export { frameFromResult, headPoseFromMatrix, FEATURE_NAMES, FEATURE_COUNT, POLY_CORE, assembleFeatures } from './features';
+export type { FeatureParts, EyeMetrics } from './features';
+export { createFaceLandmarker } from './landmarker';
+export type { FaceLandmarkerHandle } from './landmarker';
+export { GazeCalibration } from './calibration';
+export type { FitResult } from './calibration';
+export { OneEuroFilter2D } from './filter';
+export { GazeTracker } from './tracker';
+export type { TrackerUpdate } from './tracker';
+export { DwellDetector } from './dwell';
+export { GestureDetector, GestureCalibrator, DEFAULT_THRESHOLDS } from './gestures';
+export type { GestureEvent, GestureThresholds, GestureName } from './gestures';
+export { calibrationPoints } from './points';
+export { simulateGazeFrames, simulateGaze } from './sim';
+export type { SimOptions, SimScriptEvent } from './sim';
