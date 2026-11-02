@@ -144,7 +144,7 @@ export class Glance {
   /** Evaluate JS in the page shown by the Browse WebContentsView. */
   page(code) {
     return this.app.evaluate(async ({ webContents }, c) => {
-      const wc = webContents.getAllWebContents().find((w) => /^file:.*\.html/.test(w.getURL()) && !/index\.html/.test(w.getURL()))
+      const wc = webContents.getAllWebContents().find((w) => /^file:.*\.html/.test(w.getURL()) && !/\/out\/renderer\//.test(w.getURL()))
       if (!wc) throw new Error('browse page not found')
       return wc.executeJavaScript(c, true)
     }, code)
@@ -202,7 +202,7 @@ export class Glance {
         await take(w.webContents, nm)
       }
       for (const wc of webContents.getAllWebContents()) {
-        if (/^file:.*\.html/.test(wc.getURL()) && !wc.getURL().includes('index.html')) await take(wc, 'page')
+        if (/^file:.*\.html/.test(wc.getURL()) && !wc.getURL().includes('/out/renderer/')) await take(wc, 'page')
       }
       return out
     })

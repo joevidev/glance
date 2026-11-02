@@ -9,12 +9,16 @@ export interface Settings {
   paused: boolean
   /** The gaze drives the real cursor (native helper). */
   cursorControl: boolean
+  /** Holding the gaze still for 1 s opens the radial menu. Off by default: it pops up while reading. */
+  radialDwell: boolean
   /** Debug panel visible in the Browse window. */
   debug: boolean
   /** Ablation: which pick is acted on. 'nearest' = element nearest to the gaze, 'model' = the Fireworks model. */
   pick: 'model' | 'nearest'
   /** Ask the model with the gaze point (true) or with the command only (false). */
   withGaze: boolean
+  /** Cursor magnets: while the eyes fixate, the cursor settles on the clickable element nearest the gaze (features/magnet). */
+  magnet: boolean
 }
 
 export interface AppInfo {
@@ -107,7 +111,7 @@ export interface GazeMsg {
 }
 
 export type GestureMsg =
-  | { type: 'wink_left' | 'wink_right' | 'double_wink_left' | 'double_wink_right' | 'brows_up' | 'mouth_open_start' | 'mouth_open_end' }
+  | { type: 'wink_left' | 'wink_right' | 'double_wink_left' | 'double_wink_right' | 'brows_up' | 'mouth_open_start' | 'mouth_open_end' | 'eyes_closed_long' }
   | { type: 'scroll'; velocity: number; dtMs: number }
 
 export interface EngineStatus {

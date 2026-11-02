@@ -1,8 +1,9 @@
 // The control loop in the main process: gaze -> cursor, gestures -> real input, radial menu, overlay state.
 // Gaze NEVER clicks by itself: a click needs a wink (or a radial item chosen by dwell + the user's deliberate look).
-import { screen } from 'electron'
+import { globalShortcut, screen } from 'electron'
 import { DwellDetector } from '@glance/gaze'
 import type { InputHelper } from './input'
+import type { Magnet } from './features/magnet'
 import type { GazeMsg, GestureMsg, OverlayState, Settings } from '../shared/ipc'
 
 const RADIAL_ITEMS = [
@@ -18,6 +19,8 @@ const RADIAL_R = 150 // distance of item centers from the radial center
 const RADIAL_HIT = 64 // item hit radius
 const RADIAL_DWELL_MS = 900
 const RADIAL_OPEN_DWELL_MS = 1000
+const RADIAL_AWAY_R = RADIAL_R + RADIAL_HIT + 40 // gaze farther than this from the center counts as looking away
+const RADIAL_AWAY_MS = 2000 // ...for this long closes the wheel
 
 type Pt = { x: number; y: number }
 
@@ -36,7 +39,7 @@ export class Controller {
   private toastObj: OverlayState['toast'] = null
   private toastUntil = 0
   private toastId = 0
-  private radial: { cx: number; cy: number; hover: number | null; since: number; openedAt: number } | null = null
+  private radial: { cx: number; cy: number; hover: number | null; since: number; openedAt: number; awaySince: number | null } | null = null
   private dragging = false
   recording = false
   private fakeDwell = new DwellDetector({ radiusPx: 70, dwellMs: RADIAL_OPEN_DWELL_MS })
@@ -48,6 +51,8 @@ export class Controller {
   /** Typing mode (features/typing): open the panel; while it is open the radial menu is off and gestures go to the hook first. */
   onType: () => void = () => {}
   radialSuspended = false
+  /** Cursor magnet (features/magnet), set by index.ts. Moves the cursor only; `gaze` and the model's gaze stay raw. */
+  magnet: Magnet | null = null
   gestureHook: ((g: GestureMsg) => boolean) | null = null
   /** Assistant confirm card (features/agent): a left wink confirms, a right wink cancels. */
   private confirmCard: OverlayState['confirm'] = null
@@ -92,6 +97,7 @@ export class Controller {
 
   /** Show (or clear with null) the glass confirm card. While it is up, winks answer it instead of clicking. */
   setConfirm(req: { id: number; title: string; detail: string; actionName: string; hint: string } | null, onGesture?: (g: 'confirm' | 'cancel') => void): void {
+    if (req) this.closeRadial() // before the card owns Escape
     this.confirmCard = req
     this.confirmGesture = req ? (onGesture ?? null) : null
     if (!req) this.confirmedAt = Date.now()
@@ -146,26 +152,48 @@ export class Controller {
     }
     // cursor follows the gaze (not in fake mode: there the real mouse IS the gaze)
     if (!this.fake && this.settings.cursorControl && !held && now > this.holdUntil && !this.radial) {
-      this.input.move(p.x, p.y)
+      const q = this.magnet ? this.magnet.adjust(p, now, { enabled: !!this.settings.magnet, blocked: this.dragging || this.radialSuspended || !!this.confirmCard || !!this.confirmGesture, display: this.display }) : p
+      this.input.move(q.x, q.y)
     }
     // dwell opens the radial menu, never a click
     const fired = dwell >= 1 && this.prevDwell < 1
     this.prevDwell = dwell
-    if (fired && !this.radial && !this.dragging && !this.radialSuspended) this.openRadial(p)
+    if (fired && this.settings.radialDwell && !this.radial && !this.dragging && !this.radialSuspended) this.openRadial(p)
     if (this.radial) this.updateRadial(p, now)
     void ts
     this.push()
   }
 
   // ---------- radial menu ----------
+  /** Open the wheel centered on p. Called by the dwell path (opt-in) and by the eyes_closed_long gesture. */
   private openRadial(p: Pt): void {
     const m = RADIAL_R + RADIAL_HIT + 12
     const d = this.display
     const cx = Math.min(Math.max(p.x, d.x + m), d.x + d.width - m)
     const cy = Math.min(Math.max(p.y, d.y + m), d.y + d.height - m)
-    this.radial = { cx, cy, hover: null, since: Date.now(), openedAt: Date.now() }
+    this.radial = { cx, cy, hover: null, since: Date.now(), openedAt: Date.now(), awaySince: null }
+    this.dwell = 0
+    this.prevDwell = 1 // a held stare must not re-open it the moment it closes
+    // Escape closes the wheel while it is up (only registered then, so it never steals Escape otherwise)
+    try {
+      if (!globalShortcut.isRegistered('Escape')) globalShortcut.register('Escape', () => this.closeRadial())
+    } catch {
+      /* no shortcut: the gesture, a look-away or the 9 s timeout still close it */
+    }
+    this.push(true)
+  }
+  /** Can the wheel open right now? Never while paused, dragging, typing, or an assistant confirm card is up. */
+  private canOpenRadial(): boolean {
+    return !this.settings.paused && !this.radial && !this.dragging && !this.radialSuspended && !this.confirmCard && !this.confirmGesture
   }
   closeRadial(): void {
+    if (this.radial) {
+      try {
+        if (!this.confirmCard) globalShortcut.unregister('Escape') // the confirm card owns Escape while it is up
+      } catch {
+        /* ignore */
+      }
+    }
     this.radial = null
     this.push(true)
   }
@@ -176,7 +204,13 @@ export class Controller {
   private updateRadial(p: Pt, now: number): void {
     const r = this.radial!
     if (now - r.openedAt > 9000) return this.closeRadial()
-    if (Math.hypot(p.x - r.cx, p.y - r.cy) > RADIAL_R + 230) return this.closeRadial()
+    const away = Math.hypot(p.x - r.cx, p.y - r.cy)
+    if (away > RADIAL_R + 230) return this.closeRadial()
+    // looking away from the wheel for ~2 s dismisses it
+    if (away > RADIAL_AWAY_R) {
+      if (r.awaySince === null) r.awaySince = now
+      else if (now - r.awaySince >= RADIAL_AWAY_MS) return this.closeRadial()
+    } else r.awaySince = null
     let hover: number | null = null
     let best = RADIAL_HIT * 1.25
     RADIAL_ITEMS.forEach((_, i) => {
@@ -198,7 +232,7 @@ export class Controller {
     if (!r || r.hover === null) return
     const id = RADIAL_ITEMS[r.hover]!.id
     const at = { x: r.cx, y: r.cy }
-    this.radial = null
+    this.closeRadial()
     this.dwell = 0
     this.fakeDwell.reset()
     this.push(true)
@@ -290,6 +324,11 @@ export class Controller {
       }
       case 'brows_up':
         break
+      case 'eyes_closed_long':
+        // both eyes closed on purpose (~0.7 s): open the wheel at the gaze point (frozen while the eyes were closed), or close it
+        if (this.radial) return void this.closeRadial()
+        if (this.canOpenRadial() && this.gaze) this.openRadial(this.gaze)
+        break
     }
   }
 
@@ -301,7 +340,8 @@ export class Controller {
 
   private async clickAtGaze(button: 'left' | 'right', double: boolean, second: boolean): Promise<void> {
     // the point from just before the eyelid started closing
-    const p = this.gazeAround(Date.now() - 250, 300) ?? this.gaze
+    // (when the cursor was settled on a snapped element, the click lands on that point: where the cursor is)
+    const p = this.magnet?.pointAround(Date.now() - 250, 300) ?? this.gazeAround(Date.now() - 250, 300) ?? this.gaze
     this.holdCursor(700)
     // e2e-found: without Accessibility macOS drops the click silently; say so instead of failing quietly
     if (!this.input.trusted) this.toast('Accessibility is off', 'Allow Glance in System Settings > Privacy & Security > Accessibility', 4000)
@@ -319,11 +359,14 @@ export class Controller {
     if (!force && now - this.lastSend < 16) return
     this.lastSend = now
     const d = this.display
-    const g = this.gaze && !this.settings.paused ? { x: this.gaze.x - d.x, y: this.gaze.y - d.y } : null
+    // The normal macOS cursor (moved by the helper) is the pointer; the gaze dot only shows while the wheel is up,
+    // or when the eyes do not drive the cursor (then it is the only feedback).
+    const showDot = !!this.radial || (!this.settings.cursorControl && !this.fake)
+    const g = this.gaze && !this.settings.paused && showDot ? { x: this.gaze.x - d.x, y: this.gaze.y - d.y } : null
     const rad = this.radial
     const state: OverlayState = {
       gaze: g,
-      dwell: this.radial ? 0 : this.dwell,
+      dwell: this.radial || !this.settings.radialDwell ? 0 : this.dwell, // the dwell ring only exists for the opt-in 1 s stare
       ring: this.ring ? { ...this.ring, x: this.ring.x - d.x, y: this.ring.y - d.y } : null,
       toast: this.toastObj,
       radial: rad

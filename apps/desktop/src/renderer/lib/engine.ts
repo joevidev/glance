@@ -4,6 +4,7 @@ import {
   simulateGaze,
   GazeCalibration,
   GazeTracker,
+  DeadZone,
   GestureDetector,
   createFaceLandmarker,
   frameFromResult,
@@ -12,6 +13,7 @@ import {
   type GestureThresholds,
 } from '@glance/gaze'
 import type { EngineStatus } from '../../shared/ipc'
+import { trackerOpts } from './profile-stats'
 
 export type Landmark = { x: number; y: number }
 export type FrameListener = (frame: GazeFrame | null, landmarks: Landmark[] | null) => void
@@ -31,6 +33,24 @@ export interface SavedCalibration {
 const WASM_ROOT = 'glance-asset://wasm'
 const MODEL_URL = 'glance-asset://model/face_landmarker.task'
 
+/** Radius (px) inside which gaze micro-movements are ignored. Webcam gaze is 100+ px off anyway, so 30 px costs nothing. */
+const DEAD_ZONE_PX = 30
+/** An eye closing past this score freezes the cursor, and it stays frozen this long after, while the iris landmarks recover. */
+const BLINK_FREEZE = 0.25
+const BLINK_HOLD_MS = 250
+/** Eyelid openness (feature 9) falling below this fraction of its recent maximum counts as a closing eye (a look-down drops it far less). */
+const OPEN_DROP_RATIO = 0.7
+const OPEN_LOOKBACK_MS = 150
+/** Features 3..8 are head pose and face box (yaw, pitch, roll, cx, cy, size). Zeroed for calibration: with 9 dots and a still head they
+ * carry only noise, standardisation gives them full weight, and the cursor then follows head movement instead of the eyes.
+ * Gestures read frame.head, not these, so scroll is unaffected. */
+function neutralizeHead(frame: GazeFrame | null): GazeFrame | null {
+  if (!frame) return frame
+  const f = frame.features.slice()
+  for (let i = 3; i <= 8; i++) f[i] = 0
+  return { ...frame, features: f }
+}
+
 class Engine {
   video = document.createElement('video')
   stream: MediaStream | null = null
@@ -46,6 +66,12 @@ class Engine {
 
   // live control state
   private tracker: GazeTracker | null = null
+  /** Dead zone with a trailing anchor: the emitted point only moves once the gaze leaves a small radius. */
+  private deadZone = new DeadZone(DEAD_ZONE_PX)
+  private lastOut: { nx: number; ny: number } | null = null
+  private openHist: { ts: number; v: number }[] = []
+  /** Until this time (ms) the cursor stays frozen: the iris landmarks are wrong while a lid closes and for a moment after it opens. */
+  private blinkUntil = 0
   private gestures: GestureDetector | null = null
   private works = { winkLeft: true, winkRight: true, mouthOpen: true, browsUp: true }
   private swapEyes = false
@@ -97,7 +123,10 @@ class Engine {
       return
     }
     const calib = GazeCalibration.fromJSON(saved.calib)
-    this.tracker = calib.isFitted ? new GazeTracker(calib, saved.screen, { dwell: { radiusPx: 70, dwellMs: 1000 } }) : null
+    this.deadZone.reset()
+    this.lastOut = null
+    this.openHist = []
+    this.tracker = calib.isFitted ? new GazeTracker(calib, saved.screen, trackerOpts) : null
     this.gestures = new GestureDetector(saved.thresholds)
     this.works = saved.works
     this.swapEyes = saved.swapEyes
@@ -126,7 +155,7 @@ class Engine {
         this.setStatus({ state: 'loading', message: 'Downloading the face model (once)' })
         await new Promise((r) => setTimeout(r, 1000))
       }
-      this.stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, frameRate: 30 }, audio: false })
+      this.stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }, audio: false })
       this.video.srcObject = this.stream
       await this.video.play()
       this.setStatus({ state: 'loading', message: 'Loading the face tracker' })
@@ -168,7 +197,7 @@ class Engine {
     const now = performance.now()
     this.lastProcess = now
     const res = this.lm.detect(v, now)
-    const frame = frameFromResult(res, now, { aspect: v.videoWidth / v.videoHeight })
+    const frame = neutralizeHead(frameFromResult(res, now, { aspect: v.videoWidth / v.videoHeight }))
     const lms = res.faceLandmarks?.[0] ?? null
     this.frames.push(now)
     while (this.frames.length && now - this.frames[0]! > 1000) this.frames.shift()
@@ -179,21 +208,52 @@ class Engine {
     if (this.driving) this.drive(frame, now)
   }
 
+  /** True when the eyelid openness fell sharply within the last OPEN_LOOKBACK_MS (a blink or wink starting, before the blink score reacts). */
+  private openDropped(open: number, now: number): boolean {
+    this.openHist.push({ ts: now, v: open })
+    while (this.openHist.length && now - this.openHist[0]!.ts > OPEN_LOOKBACK_MS) this.openHist.shift()
+    let mx = 0
+    for (const h of this.openHist) if (h.v > mx) mx = h.v
+    return mx > 0.05 && open < OPEN_DROP_RATIO * mx
+  }
+
   private drive(frame: GazeFrame | null, now: number): void {
     if (!frame) {
       window.glance.send('gaze:frame', { ts: now, nx: null, ny: null, speed: 0, dwell: 0, held: false })
       return
     }
     if (this.tracker) {
-      const out = this.tracker.update(frame)
-      window.glance.send('gaze:frame', {
-        ts: now,
-        nx: out.point?.x ?? null,
-        ny: out.point?.y ?? null,
-        speed: out.speedPxPerS,
-        dwell: out.dwell.progress,
-        held: out.held,
-      })
+      // Decide the freeze BEFORE the tracker sees the frame: the iris landmarks are garbage while a lid closes, and a
+      // garbage frame would otherwise enter the fixation window. Triggers: a blink/wink score, or the eyelid opening
+      // (feature 9) dropping sharply, which starts a little before the blink score rises.
+      const closing = Math.max(frame.blinkLeft, frame.blinkRight) > BLINK_FREEZE || this.openDropped(frame.features[9] ?? 0, now)
+      if (closing) {
+        if (now >= this.blinkUntil) this.tracker.discardRecent(OPEN_LOOKBACK_MS)
+        this.blinkUntil = now + BLINK_HOLD_MS
+      }
+      if (now < this.blinkUntil && this.lastOut) {
+        window.glance.send('gaze:frame', { ts: now, nx: this.lastOut.nx, ny: this.lastOut.ny, speed: 0, dwell: 0, held: true })
+      } else {
+        const out = this.tracker.update(frame)
+        let nx = out.point?.x ?? null
+        let ny = out.point?.y ?? null
+        if (out.point && out.pointPx && !out.held) {
+          const w = out.pointPx.x / Math.max(1e-6, out.point.x)
+          const h = out.pointPx.y / Math.max(1e-6, out.point.y)
+          const z = this.deadZone.apply(out.pointPx)
+          nx = z.x / w
+          ny = z.y / h
+        }
+        if (nx !== null && ny !== null) this.lastOut = { nx, ny }
+        window.glance.send('gaze:frame', {
+          ts: now,
+          nx,
+          ny,
+          speed: out.speedPxPerS,
+          dwell: out.dwell.progress,
+          held: out.held,
+        })
+      }
     }
     if (this.gestures) {
       const gf = this.swapEyes ? { ...frame, blinkLeft: frame.blinkRight, blinkRight: frame.blinkLeft } : frame
@@ -213,6 +273,9 @@ class Engine {
             break
           case 'brows_up':
             window.glance.send('gesture', { type: 'brows_up' })
+            break
+          case 'eyes_closed_long':
+            window.glance.send('gesture', { type: 'eyes_closed_long' })
             break
           case 'scroll': {
             if (!this.works.browsUp) break

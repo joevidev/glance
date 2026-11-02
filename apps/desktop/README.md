@@ -37,7 +37,7 @@ nothing needs the network except the model call and speech to text.
 | Env | Effect |
 |---|---|
 | `GLANCE_PROVIDER=openai` | Use OpenAI (`gpt-6-astra`) for the intent call instead of Fireworks. |
-| `GLANCE_FAKE_GAZE=mouse` | The real mouse stands in for the gaze. Cursor control is off (the mouse already is the cursor). Dwell 1 s on the mouse opens the radial menu; every Browse feature works. Use it to develop, test, and as the recording fallback. |
+| `GLANCE_FAKE_GAZE=mouse` | The real mouse stands in for the gaze. Cursor control is off (the mouse already is the cursor). With the dashboard toggle "Radial menu on a 1 s stare" on, dwelling 1 s on the mouse opens the radial menu; every Browse feature works. Use it to develop, test, and as the recording fallback. |
 | `GLANCE_SIM_CAMERA=1` | Synthetic face frames instead of the webcam, so onboarding and the tracker run with no camera. Uses a throw-away user-data dir, so it never touches your real calibration. |
 | `GLANCE_SCREENSHOT=1` | Capture every window to `apps/desktop/.screens/` and quit. `GLANCE_SIMFLOW=1` (with `GLANCE_SIM_CAMERA=1`) drives the whole onboarding and screenshots each step. |
 
@@ -84,7 +84,7 @@ Glance shows a clear message in the UI when Accessibility is missing (the helper
 | Double click | Double wink |
 | Drag | Open mouth = press, move your gaze, close = drop |
 | Scroll | Raise brows, nod up or down (settings has "invert scroll" if it feels backwards) |
-| Radial menu | Hold your gaze about 1 s: click, right click, drag, scroll up/down, mic. Look at an item for 1 s (or wink) |
+| Action wheel (radial menu) | Close both eyes for about 1 s (`eyes_closed_long`, 700 ms by default, in `packages/gaze/src/gestures.ts`): opens at the last gaze point; click, right click, drag, scroll up/down, mic, type. Look at an item for 1 s (or wink) to choose it; close your eyes again, Esc, or look away for 2 s to close. The 1 s stare is opt-in (`radialDwell`). The overlay draws a gaze dot only while the wheel is open |
 | Push to talk | Option+Space |
 | Pause tracking | Alt+Shift+P (also in the menu bar tray item) |
 

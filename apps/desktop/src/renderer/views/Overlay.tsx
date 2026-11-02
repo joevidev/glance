@@ -77,8 +77,10 @@ export function Overlay() {
             className="absolute"
             style={{ left: radial.cx, top: radial.cy }}
           >
-            <div className="glass glass-dark absolute -translate-x-1/2 -translate-y-1/2" style={{ width: 128, height: 128, borderRadius: 999 }}>
-              <div className="relative flex h-full w-full items-center justify-center font-mono text-[10px] uppercase tracking-[0.16em] text-white/60">look · hold</div>
+            {/* center: an open ring, no fill, so the element you were looking at stays visible */}
+            <div className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ width: 44, height: 44, border: '1.5px solid rgba(255,255,255,.75)', boxShadow: '0 0 0 1.5px rgba(0,0,0,.45), 0 0 18px rgba(255,255,255,.35)' }} />
+            <div className="glass glass-dark absolute left-1/2 -translate-x-1/2 whitespace-nowrap px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-white/80" style={{ top: 150 + 56 + 14, borderRadius: 999 }}>
+              <span className="relative">look at one · hold · esc to cancel</span>
             </div>
             {radial.items.map((it, i) => {
               const a = -Math.PI / 2 + (i * 2 * Math.PI) / radial.items.length

@@ -300,6 +300,7 @@ function GestureStep({ onDone, onSkip }: { onDone: (g: { thresholds: SavedCalibr
       { k: 'winkRight', name: 'Wink right', use: 'Right click' },
       { k: 'mouthOpen', name: 'Open mouth', use: 'Drag' },
       { k: 'browsUp', name: 'Raise brows', use: 'Scroll with a nod' },
+      { k: 'eyesClosed', name: 'Close both eyes (1 s)', use: 'Open the action wheel' },
     ]
     return (
       <div className="mx-auto flex h-full max-w-[680px] flex-col justify-center gap-5 px-8 pb-10">
@@ -411,6 +412,8 @@ function Dashboard(p: {
           </div>
           <div className="relative grid grid-cols-2 gap-x-6 gap-y-3">
             <Toggle icon={<MousePointer2 className="size-4" />} label="Eyes move the cursor" desc={info?.fakeGaze ? 'Off in fake-gaze mode' : 'Gaze never clicks by itself'} checked={!!settings?.cursorControl && !info?.fakeGaze} disabled={info?.fakeGaze} onChange={(v) => set({ cursorControl: v })} />
+            <Toggle icon={<MousePointer2 className="size-4" />} label="Cursor magnets to clickable things" desc="While you look at one spot, the cursor settles on the nearest button or link" checked={!!settings?.magnet} onChange={(v) => set({ magnet: v })} />
+            <Toggle icon={<MousePointer2 className="size-4" />} label="Radial menu on a 1 s stare" desc="Off by default so it never pops up while you read. Closing both eyes for a second opens it anyway" checked={!!settings?.radialDwell} onChange={(v) => set({ radialDwell: v })} />
             <Toggle icon={<ShieldCheck className="size-4" />} label="Pause tracking" desc="Alt+Shift+P anywhere" checked={!!settings?.paused} onChange={(v) => set({ paused: v })} />
             <Toggle icon={<Keyboard className="size-4" />} label="Invert scroll direction" desc="Brows up + nod to scroll" checked={invert} onChange={(v) => { engine.setInvertScroll(v); setInvert(v) }} />
           </div>
@@ -439,7 +442,7 @@ function Dashboard(p: {
             <G ok={works?.winkLeft} a="Double wink" b="Double click" />
             <G ok={works?.mouthOpen} a="Open mouth" b="Drag (close = drop)" />
             <G ok={works?.browsUp} a="Brows up + nod" b="Scroll" />
-            <G ok a="Hold gaze 1 s" b="Radial menu" />
+            <G ok={(works as Record<string, boolean> | undefined)?.eyesClosed ?? true} a="Close both eyes ~1 s" b="Action wheel (again or Esc closes)" />
           </div>
           <div className="relative flex gap-2 pt-1">
             <Button variant="glass" size="sm" onClick={p.onRecalibrate}><Camera /> Recalibrate eyes</Button>

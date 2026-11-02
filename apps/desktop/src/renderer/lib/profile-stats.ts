@@ -88,8 +88,13 @@ export interface Evaluation {
   stats: ErrStats
 }
 
-/** The live tracker's settings (engine.applyCalibration): One Euro smoothing + dwell. */
-export const trackerOpts = { dwell: { radiusPx: 70, dwellMs: 1000 } }
+/** The live tracker's settings (engine.applyCalibration): fixation median + One Euro smoothing + dwell. */
+export const trackerOpts = {
+  dwell: { radiusPx: 70, dwellMs: 1000 },
+  filter: { minCutoff: 1.0, beta: 0.8 },
+  /** fixation = running median of the last 250 ms of raw gaze; a saccade (2 samples > 220 px away) restarts it. See quality.test.ts. */
+  fixation: { windowMs: 250, saccadePx: 220, confirm: 2 },
+}
 
 /**
  * Score a gaze model on recorded segments the way the live tracker would behave: every frame goes through a

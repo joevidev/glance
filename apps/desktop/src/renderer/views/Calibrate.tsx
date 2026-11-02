@@ -135,6 +135,7 @@ export const GESTURE_STEPS: { key: 'neutral' | GestureName; title: string; hint:
   { key: 'winkRight', title: 'Wink right', hint: 'Close only your RIGHT eye and hold it.' },
   { key: 'mouthOpen', title: 'Open your mouth', hint: 'Open wide, like a yawn, and hold it.' },
   { key: 'browsUp', title: 'Raise your brows', hint: 'Lift both eyebrows high and hold them.' },
+  { key: 'eyesClosed', title: 'Close both eyes', hint: 'Close BOTH eyes and hold them shut for about a second. This opens the action wheel.' },
 ]
 
 /** Collects ~2 s of frames for one gesture step. Resolves with the mean blink signals (for the eye-swap check). */

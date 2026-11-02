@@ -8,7 +8,7 @@
 import { existsSync, readFileSync, statSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
-import { Glance, Mouse, Report, OUT, build, sleep, dirSnapshot, realUserData, writeFakeInputUntrusted } from './lib.mjs'
+import { Glance, Mouse, Report, OUT, ROOT, build, sleep, dirSnapshot, realUserData, writeFakeInputUntrusted } from './lib.mjs'
 
 const only = process.argv.slice(2)
 const scenarios = []
@@ -369,9 +369,11 @@ scenario('s3b', 'Gaze frames drive the real cursor (display mapping) and a mouth
 }, { env: { GLANCE_FAKE_GAZE: undefined } })
 
 // ============================================================================ S4 radial
-scenario('s4', 'Radial menu after a 1 s dwell, choose Scroll down by looking 1 s', async (g, r, mouse) => {
+scenario('s4', 'Radial menu: opt-in 1 s dwell, or eyes_closed_long; choose Scroll down by looking 1 s', async (g, r, mouse) => {
   await openBrowse(g)
   await instrument(g)
+  // the stare-to-open path is opt-in now (default off): this scenario turns it on
+  await g.main.evaluate(() => window.glance.invoke('settings:set', { radialDwell: true }))
   await settleRadial(g, mouse)
   const geo = await g.browseGeom()
   const cx = geo.pageScreen.x + geo.pageScreen.w / 2
@@ -405,6 +407,17 @@ scenario('s4', 'Radial menu after a 1 s dwell, choose Scroll down by looking 1 s
   const c = (await evs(g)).click
   r.check('dwell alone never clicks', c === 0, `${c} clicks`)
   await g.shot('radial-done')
+  // the deliberate gesture: both eyes closed ~0.7 s opens the wheel (without any dwell), the same gesture closes it
+  await g.main.evaluate(() => window.glance.invoke('settings:set', { radialDwell: false }))
+  await mouse.move(cx + 300, cy + 200)
+  await sleep(1500) // the cursor hold after the commit ends; the wheel is closed
+  r.check('radial is closed before the gesture test', !(await radialOpen(g)))
+  await gesture(g, { type: 'eyes_closed_long' })
+  const gOpen = await waitFor(async () => radialOpen(g), 2000, 40)
+  r.check('eyes_closed_long opens the radial without a dwell', gOpen.v, gOpen.ms + ' ms')
+  await gesture(g, { type: 'eyes_closed_long' })
+  const gClosed = await waitFor(async () => !(await radialOpen(g)), 2000, 40)
+  r.check('eyes_closed_long again closes it and leaves nothing on screen', gClosed.v, gClosed.ms + ' ms')
 })
 
 // ============================================================================ S5 pause shortcut
@@ -468,6 +481,167 @@ scenario('s7', 'Accessibility permission missing: clear message', async (g, r) =
   const o = await g.win('overlay', 'document.body.innerText')
   r.check('a wink without permission tells the user why instead of failing silently', /Accessibility/i.test(o), o.replace(/\s+/g, ' ').slice(0, 120))
 }, { env: { GLANCE_INPUT_BIN: 'FAKE_UNTRUSTED' } })
+
+// ============================================================================ PHASE 2: multi-step tasks on resources/demo
+const demoUrl = (f) => 'file://' + join(ROOT, 'apps/desktop/resources/demo', f)
+const agentState = (g) => g.main.evaluate(() => window.glance.invoke('agent:state'))
+async function agentTask(g, r, mouse, { page, selector, command, notYet, after, finishCheck, label }) {
+  await g.main.evaluate((u) => window.glance.invoke('browse:open', u), demoUrl(page))
+  await waitFor(async () => (await g.page('location.pathname')).endsWith(page.split('?')[0]), 15000, 200)
+  await g.waitWindow('#/browse')
+  await sleep(1200)
+  await g.page('localStorage.clear(); true')
+  await front(g)
+  const at = await g.elScreen(selector)
+  r.check(`${label}: gaze target found`, !!at, selector)
+  await mouse.move(at.x, at.y)
+  await sleep(300)
+  const t0 = Date.now()
+  const run = g.main.evaluate((c) => window.glance.invoke('agent:run', { command: c, source: 'typed' }), command)
+  let st = null
+  const conf = await waitFor(async () => {
+    st = await agentState(g)
+    return st?.status === 'confirming' || ['done', 'error', 'asked', 'stuck', 'max_steps', 'cancelled'].includes(st?.status) ? st : null
+  }, 90000, 400)
+  const tConfirm = Date.now() - t0
+  r.check(`${label}: stops at the irreversible step and asks for confirmation`, st?.status === 'confirming', `${st?.status} after ${Math.round(tConfirm / 1000)} s, ${st?.steps?.length} steps, card "${st?.pending?.actionName ?? ''}" / ${st?.pending?.title ?? ''}`)
+  const nothing = await g.page(notYet)
+  r.check(`${label}: nothing sent/saved before the confirmation`, nothing === true, 'page state check = ' + nothing)
+  const prep = await g.page(after.pre)
+  r.check(`${label}: the form was prepared`, finishCheck.pre(prep), JSON.stringify(prep).slice(0, 220))
+  await sleep(500)
+  await g.shot(label + '-confirm-card')
+  // confirm with a real left wink through the controller hook
+  await sleep(300)
+  await send(g, { type: 'wink_left' })
+  const fin = await run
+  await sleep(900)
+  await g.shot(label + '-final')
+  const post = await g.page(after.post)
+  r.check(`${label}: after the wink it is done`, fin.status === 'done' && finishCheck.post(post), `status ${fin.status}, ${fin.steps.length} steps, ${Math.round((Date.now() - t0) / 1000)} s total, model ms ${fin.steps.reduce((a, x) => a + x.modelMs, 0)}, tokens ${fin.tokensIn}/${fin.tokensOut}; page ${JSON.stringify(post).slice(0, 200)}`)
+  r.num(label + ' steps/s', `${fin.steps.length} steps, ${Math.round((Date.now() - t0) / 1000)} s`)
+  r.num(label + ' trace', fin.steps.map((x) => `${x.n}:${x.action}${x.target ? ' ' + x.target : ''}${x.irreversible ? ' [IRREV]' : ''}`).join(' > '))
+}
+scenario('p1', 'Assistant: "reply yes, tomorrow at 3 works" stops at Send, then sends after a wink', async (g, r, mouse) => {
+  await agentTask(g, r, mouse, {
+    label: 'reply', page: 'email.html?id=ana', selector: '#when', command: 'reply yes, tomorrow at 3 works',
+    notYet: "(JSON.parse(localStorage.getItem('glance.demo.sent')||'[]')).length === 0",
+    after: { pre: "({ url: location.pathname.split('/').pop(), body: (document.getElementById('body')||{}).value })", post: "({ sent: JSON.parse(localStorage.getItem('glance.demo.sent')||'[]') })" },
+    finishCheck: { pre: (p) => /reply\.html/.test(p.url) && /3/.test(p.body ?? '') && /yes|works|tomorrow/i.test(p.body ?? ''), post: (p) => p.sent.length === 1 && /yes/i.test(p.sent[0].text) && /3/.test(p.sent[0].text) },
+  })
+}, { env: { GLANCE_ELEMENTS: 'dom' } })
+scenario('p2', 'Assistant: "schedule it" fills the calendar form, stops at Save, saves after a wink', async (g, r, mouse) => {
+  await agentTask(g, r, mouse, {
+    label: 'schedule', page: 'email.html?id=ana', selector: '#when', command: 'schedule it',
+    notYet: "(JSON.parse(localStorage.getItem('glance.demo.events')||'[]')).length === 0",
+    after: { pre: "({ url: location.pathname.split('/').pop(), t: (document.getElementById('t')||{}).value, d: (document.getElementById('d')||{}).value, h: (document.getElementById('h')||{}).value, i: (document.getElementById('i')||{}).value })", post: "({ events: JSON.parse(localStorage.getItem('glance.demo.events')||'[]') })" },
+    finishCheck: { pre: (p) => /calendar\.html/.test(p.url) && p.d === '2026-11-03' && p.h === '15:00' && /ana\.torres/.test(p.i ?? '') && !!p.t, post: (p) => p.events.length === 1 && p.events[0].date === '2026-11-03' && p.events[0].time === '15:00' },
+  })
+}, { env: { GLANCE_ELEMENTS: 'dom' } })
+
+scenario('p3', 'Typing mode: reply suggestion typed into an input, gaze keyboard types a word', async (g, r, mouse) => {
+  const page = 'file://' + join(ROOT, 'apps/desktop/src/main/features/typing/test-page.html')
+  await g.main.evaluate((u) => window.glance.invoke('browse:open', u), page)
+  await waitFor(async () => (await g.page('!!document.getElementById("field")')) === true, 15000, 200)
+  await g.waitWindow('#/browse')
+  await sleep(1000)
+  const field = () => g.page('document.getElementById("field").value')
+  const focusField = async () => {
+    await front(g)
+    await g.ev(({ BrowserWindow, webContents }) => {
+      const wc = webContents.getAllWebContents().find((w) => w.getURL().includes('test-page.html'))
+      wc?.focus()
+      return wc?.executeJavaScript('document.getElementById("field").focus()')
+    })
+  }
+  await focusField()
+  const key = () => spawnSync('osascript', ['-e', 'tell application "System Events" to key code 17 using {option down, shift down}'], { encoding: 'utf8' })
+  const k = key()
+  r.check('Alt+Shift+T keystroke sent', k.status === 0, (k.stderr || '').slice(0, 100))
+  const t0 = Date.now()
+  const win = await waitFor(async () => (await g.win('typing', 'document.querySelectorAll("[data-gaze^=\\"s:\\"]").length')) >= 3, 25000, 250)
+  r.check('typing panel opens with 3 reply suggestions', win.v, `${Date.now() - t0} ms`)
+  await sleep(600)
+  await g.shot('replies')
+  const sug = await g.win('typing', 'JSON.stringify([...document.querySelectorAll("[data-gaze^=\\"s:\\"]")].map((e) => e.textContent.trim()))')
+  r.num('suggestions', sug)
+  const tbounds = () => g.ev(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => w.webContents.getURL().includes('#/typing'))?.getBounds())
+  const dwellOn = async (id, ms = 1500) => {
+    const rc = await g.win('typing', `(() => { const e = document.querySelector('[data-gaze="${id}"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 } })()`)
+    if (!rc) return false
+    const b = await tbounds()
+    await focusField()
+    await mouse.move(b.x + rc.x, b.y + rc.y)
+    await sleep(ms)
+    await mouse.move(b.x + b.width / 2, b.y + b.height + 200 > 1000 ? 300 : b.y + b.height + 200)
+    await sleep(250)
+    return true
+  }
+  const before = await field()
+  await dwellOn('s:0')
+  const after = await field()
+  const first = JSON.parse(sug)[0]
+  r.check('dwell on reply 1 types it into the page input', before === '' && after.length > 0 && after.includes(first.slice(0, 12)), `field="${after}"`)
+  await g.shot('after-suggestion')
+  await dwellOn('m:keys', 1600)
+  await sleep(500)
+  const base = await field()
+  await dwellOn('k:h', 1400)
+  await dwellOn('k:i', 1400)
+  const hi = await field()
+  r.check('gaze keyboard types "hi"', hi === base + 'hi', `tail="${hi.slice(-8)}"`)
+  await sleep(1500)
+  await g.shot('keys')
+  const w0 = await g.win('typing', `document.querySelector('[data-gaze="w:0"]')?.textContent || ''`)
+  await dwellOn('w:0', 1500)
+  const withWord = await field()
+  r.check('a predicted word is typed (completes the partial word) with a trailing space', w0.length > 0 && withWord.endsWith(w0 + ' ') && withWord.length >= hi.length, `word="${w0}" tail="${withWord.slice(-14)}"`)
+  await dwellOn('k:back', 1400)
+  const bs = await field()
+  r.check('backspace removes one character', bs === withWord.slice(0, -1), `tail="${bs.slice(-12)}"`)
+  r.check('app alive, panel did not steal the click target', !(await g.main.isClosed()))
+}, { env: { GLANCE_ELEMENTS: 'dom' } })
+
+scenario('p4', 'Accessibility element path: dump a real app (Calculator) and click one key with "press 7"', async (g, r, mouse) => {
+  const sh = (cmd) => spawnSync('bash', ['-c', cmd], { encoding: 'utf8' })
+  const osa = (script) => spawnSync('osascript', ['-e', script], { encoding: 'utf8' })
+  sh('open -a Calculator')
+  await sleep(1500)
+  osa('tell application "Calculator" to activate')
+  await sleep(600)
+  osa('tell application "System Events" to keystroke "c"') // C = clear
+  await sleep(300)
+  const bin = join(ROOT, 'packages/ax/bin/glance-ax')
+  const dump = JSON.parse(sh(`${bin} elements --max 60`).stdout || '{}')
+  r.check('glance-ax dumps the real app', dump.ok && dump.app === 'Calculator' && dump.count >= 15, `${dump.app}: ${dump.count} elements in ${dump.ms} ms, trusted ${dump.trusted}`)
+  const key = (dump.elements ?? []).find((e) => e.name === '7' && e.role === 'button')
+  r.check('the 7 key is in the list with a screen box', !!key, key ? JSON.stringify(key.box) : '')
+  if (!key) return
+  // bring Calculator forward again after Glance's windows appeared, so Glance has no focused window (auto -> Accessibility path)
+  const gone = await waitFor(async () => {
+    osa('tell application "Calculator" to activate')
+    return (await g.ev(({ BrowserWindow }) => BrowserWindow.getFocusedWindow() === null)) === true
+  }, 10000, 400)
+  r.check('Calculator is in front, Glance has no focused window', gone.v, gone.ms + ' ms')
+  await mouse.move(key.box.x + key.box.w / 2 + 6, key.box.y + key.box.h / 2 + 4)
+  await sleep(300)
+  const res = await g.main.evaluate(() => window.glance.invoke('intent:run', { command: 'press 7', source: 'typed' }))
+  await sleep(300)
+  await g.shot('ax-intent')
+  r.num('ax latency ms', res.latencyMs)
+  r.check('model picked the 7 button from the AX elements', res.element?.name === '7', `${res.elementCount} elements, pick [${res.modelPick}] "${res.element?.name}", nearest [${res.nearestPick}], ${res.latencyMs} ms, ${res.provider} ${res.model}${res.error ? ', error ' + res.error : ''}`)
+  await sleep(1400) // ring, then the real click
+  // read the calculator display through its own Copy
+  sh('pbcopy < /dev/null')
+  osa('tell application "Calculator" to activate')
+  await sleep(300)
+  osa('tell application "System Events" to keystroke "c" using {command down}')
+  await sleep(400)
+  const shown = sh('pbpaste').stdout.trim()
+  r.check('the real click landed: Calculator shows 7', shown === '7', `display copy = "${shown}"`)
+  osa('tell application "System Events" to keystroke "c"')
+  osa('tell application "Calculator" to quit')
+}, { env: { GLANCE_ELEMENTS: undefined } })
 
 // ============================================================================ runner
 const keyless = { OPENAI_API_KEY: '' }

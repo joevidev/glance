@@ -8,6 +8,7 @@ import { InputHelper } from './input'
 import { assetState, ensureModel, handleScheme, registerScheme } from './assets'
 import { Browse } from './browse'
 import { decideDesktop, useAxNow } from './features/ax'
+import { Magnet } from './features/magnet'
 import { Controller } from './controller'
 import { createMainWindow, createOverlayWindow } from './windows'
 import { clearCalibration, loadCalibration, loadSettings, saveCalibration, saveSettings } from './store'
@@ -240,6 +241,7 @@ app.whenReady().then(async () => {
   controller = new Controller(input, settings, FAKE)
   controller.onPtt = toggleRecording
   browse = new Browse({ onResult: () => {} })
+  controller.magnet = new Magnet({ browse })
   browse.debug = settings.debug
   registerIpc()
   registerProfileIpc()

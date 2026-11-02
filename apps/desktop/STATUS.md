@@ -42,3 +42,16 @@ Run: `node apps/desktop/e2e/run.mjs [s1 s2 ...]` (builds into e2e/.app/out, laun
 | ◐ open | real clicks only land when Glance is the active app (macOS swallows the first click of an inactive app); runIntent focuses it, gestures do not | by design for desktop control; for the recording keep Browse in front |
 | ◐ open | with another app in front "open that" acts on THAT app through Accessibility (clicked a window's "full screen" button in a test) | owner: ax (features/ax); consider GLANCE_ELEMENTS=dom for the Browse recording |
 | ◐ open | harness cannot move the mouse of a held button from a second process; drag motion is covered via gaze frames (s3b) | harness only |
+
+### Phase 2 (15:0x PT, after the typing, voice, ax, agent and onboarding merges) and the final run
+
+Full run `node apps/desktop/e2e/run.mjs`: 13 of 13 scenarios PASS (about 4 min, about 15 live OpenAI calls). Only one clean full 13/13 run so far (earlier full runs had s4 and s5 failing from a harness bug, since fixed: s4 now reads the radial item positions from the overlay DOM, 4 of 4 reruns green).
+
+| State | Scenario | Measured |
+|---|---|---|
+| ✔ | p1 Assistant "reply yes, tomorrow at 3 works" (resources/demo, gaze on the "when" line) | stops at "Send reply?" after 4 s and 3 steps with nothing sent (localStorage `sent` empty), reply body "Yes, tomorrow at 3 works." typed; after a real left wink: sent once, 4 steps, 9 s total, 3311 tokens in |
+| ✔ | p2 Assistant "schedule it" | stops at "Save event?" after 9 s and 6 steps, form = Product demo / 2026-11-03 / 15:00 / ana.torres@northwind.example, no event saved yet; after the wink: exactly 1 event saved, 7 steps, 13 s |
+| ✔ | p3 Typing mode (Alt+Shift+T real keystroke, live replies) | panel + 3 replies in 255 ms; dwell on reply 1 typed it into the page input; gaze keyboard typed "hi"; predicted word completed with a trailing space; backspace removed one char |
+| ✔ | p4 Accessibility path on a real app (Calculator) | glance-ax: 22 elements in 88 ms; with Calculator in front "press 7" -> model picked [6] "7" in 2085 ms; the real click landed (Calculator display copy = "7") |
+
+Notes: the typing owner's own check (`GLANCE_TYPING_E2E=1`) and the agent owner's (`GLANCE_AGENT_E2E=1`) are separate; p1 to p4 are independent black-box runs through the real gesture and IPC paths. Minor open: the Browse URL bar says "Glance demo inbox (local)" for every file:// page, also resources/demo (owner: BrowseChrome, cosmetic). Simulated camera gives 0/4 gestures "reliable" (synthetic faces never wink), so a SIM-calibrated profile has all gestures unbound: use FAKE gaze + injected gestures for tests.

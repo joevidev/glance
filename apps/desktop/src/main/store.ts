@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { app } from 'electron'
 import type { Settings } from '../shared/ipc'
 
-export const DEFAULT_SETTINGS: Settings = { paused: false, cursorControl: true, debug: true, pick: 'model', withGaze: true }
+export const DEFAULT_SETTINGS: Settings = { paused: false, cursorControl: true, radialDwell: false, debug: true, pick: 'model', withGaze: true, magnet: true }
 
 const dir = () => {
   const d = join(app.getPath('userData'), 'calibration')
