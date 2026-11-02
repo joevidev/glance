@@ -44,6 +44,29 @@ describe('decideIntent', () => {
   })
 })
 
+describe('openai provider', () => {
+  it('sends no temperature, uses max_completion_tokens, default model gpt-6-astra', async () => {
+    const { create, client } = mock('{"target": 1}')
+    const r = await decideIntent(input, { client, provider: 'openai' })
+    const call = create.mock.calls[0]![0] as any
+    expect(call.model).toBe('gpt-6-astra')
+    expect('temperature' in call).toBe(false)
+    expect('max_tokens' in call).toBe(false)
+    expect('reasoning_effort' in call).toBe(false)
+    expect(call.max_completion_tokens).toBe(1024)
+    expect(call.messages[0].content).toBe(buildPrompt(input, { withGaze: true }))
+    expect(r.provider).toBe('openai')
+    expect(r.model).toBe('gpt-6-astra')
+    expect(r.target).toBe(1)
+  })
+  it('fireworks stays the default provider', async () => {
+    const { create, client } = mock('{"target": 0}')
+    const r = await decideIntent(input, { client })
+    expect(r.provider).toBe('fireworks')
+    expect((create.mock.calls[0]![0] as any).temperature).toBe(0)
+  })
+})
+
 describe('nearestElement', () => {
   it('picks the box nearest to the gaze point', () => {
     expect(nearestElement({ x: 40, y: 150 }, elements)).toBe(1)

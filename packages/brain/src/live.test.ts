@@ -11,8 +11,8 @@ describe.skipIf(!process.env.GLANCE_LIVE)('live Fireworks call', () => {
       { id: 2, role: 'button', name: 'Sign up', box: { x: 220, y: 20, w: 90, h: 30 } },
     ]
     for (let i = 0; i < 3; i++) {
-      const r = await decideIntent({ viewport: { w: 1280, h: 800 }, gaze: { x: 150, y: 40 }, command: 'open that', elements })
-      console.log('LIVE', JSON.stringify({ target: r.target, ms: r.latencyMs, raw: r.raw.slice(0, 200), err: r.error, model: r.model }))
+      const r = await decideIntent({ viewport: { w: 1280, h: 800 }, gaze: { x: 150, y: 40 }, command: 'open that', elements }, { provider: process.env.GLANCE_PROVIDER as 'openai' | undefined })
+      console.log('LIVE', JSON.stringify({ target: r.target, ms: r.latencyMs, raw: r.raw.slice(0, 200), err: r.error, model: r.model, provider: r.provider }))
       if (i === 2) expect(r.target).toBe(1)
     }
   }, 60_000)

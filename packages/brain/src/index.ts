@@ -6,6 +6,20 @@ import type { Element, LiveCase } from '@glance/contracts'
 
 export const FIREWORKS_BASE_URL = 'https://api.fireworks.ai/inference/v1'
 export const DEFAULT_MODEL = 'accounts/fireworks/models/glm-5p3'
+export const OPENAI_DEFAULT_MODEL = 'gpt-6-astra'
+
+export type Provider = 'fireworks' | 'openai'
+
+/** GLANCE_PROVIDER=openai|fireworks (default fireworks). */
+export function resolveProvider(explicit?: Provider): Provider {
+  const v = (explicit ?? process.env.GLANCE_PROVIDER ?? 'fireworks').toLowerCase()
+  return v === 'openai' ? 'openai' : 'fireworks'
+}
+
+/** Model id for a provider: GLANCE_MODEL wins, else the provider's default. */
+export function resolveModel(provider: Provider, explicit?: string): string {
+  return explicit ?? process.env.GLANCE_MODEL ?? (provider === 'openai' ? OPENAI_DEFAULT_MODEL : DEFAULT_MODEL)
+}
 
 export interface IntentInput {
   viewport: { w: number; h: number }
@@ -22,8 +36,9 @@ export interface ChatClient {
       create(params: {
         model: string
         messages: { role: 'user'; content: string }[]
-        temperature: number
-        max_tokens: number
+        temperature?: number
+        max_tokens?: number
+        max_completion_tokens?: number
         [k: string]: unknown
       }): Promise<{ choices: { message?: { content?: string | null } | null }[] }>
     }
@@ -31,6 +46,7 @@ export interface ChatClient {
 }
 
 export interface DecideOpts {
+  provider?: Provider
   client?: ChatClient
   apiKey?: string
   baseURL?: string
@@ -48,23 +64,27 @@ export interface Decision {
   latencyMs: number
   raw: string
   model: string
+  provider: Provider
   prompt: string
   error?: string
 }
 
-export function makeClient(opts: { apiKey?: string; baseURL?: string; timeoutMs?: number } = {}): ChatClient {
-  const apiKey = opts.apiKey ?? process.env.FIREWORKS_API_KEY
-  if (!apiKey) throw new Error('FIREWORKS_API_KEY is not set')
+export function makeClient(opts: { provider?: Provider; apiKey?: string; baseURL?: string; timeoutMs?: number } = {}): ChatClient {
+  const provider = resolveProvider(opts.provider)
+  const apiKey = opts.apiKey ?? (provider === 'openai' ? process.env.OPENAI_API_KEY : process.env.FIREWORKS_API_KEY)
+  if (!apiKey) throw new Error(`${provider === 'openai' ? 'OPENAI_API_KEY' : 'FIREWORKS_API_KEY'} is not set`)
   return new OpenAI({
     apiKey,
-    baseURL: opts.baseURL ?? FIREWORKS_BASE_URL,
+    // openai: the SDK default (api.openai.com); fireworks: the OpenAI-compatible endpoint
+    ...(provider === 'openai' ? (opts.baseURL ? { baseURL: opts.baseURL } : {}) : { baseURL: opts.baseURL ?? FIREWORKS_BASE_URL }),
     timeout: opts.timeoutMs ?? 20_000,
     maxRetries: 1,
   }) as unknown as ChatClient
 }
 
 export async function decideIntent(input: IntentInput, opts: DecideOpts = {}): Promise<Decision> {
-  const model = opts.model ?? process.env.GLANCE_MODEL ?? DEFAULT_MODEL
+  const provider = resolveProvider(opts.provider)
+  const model = resolveModel(provider, opts.model)
   const withGaze = (opts.withGaze ?? true) && !!input.gaze
   const live: LiveCase = {
     viewport: input.viewport,
@@ -75,19 +95,23 @@ export async function decideIntent(input: IntentInput, opts: DecideOpts = {}): P
   const prompt = buildPrompt(live, { withGaze })
   const t0 = performance.now()
   try {
-    const client = opts.client ?? makeClient(opts)
-    const res = await client.chat.completions.create({
-      model,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0,
-      max_tokens: opts.maxTokens ?? 256,
-      ...(opts.reasoningEffort === null ? {} : { reasoning_effort: opts.reasoningEffort ?? 'low' }),
-    })
+    const client = opts.client ?? makeClient({ ...opts, provider })
+    // openai (gpt-6-astra) rejects any temperature but the default and wants max_completion_tokens.
+    // fireworks (GLM thinking models): temperature 0, small budget, low reasoning effort.
+    const params =
+      provider === 'openai'
+        ? { max_completion_tokens: opts.maxTokens ?? 1024 }
+        : {
+            temperature: 0,
+            max_tokens: opts.maxTokens ?? 256,
+            ...(opts.reasoningEffort === null ? {} : { reasoning_effort: opts.reasoningEffort ?? 'low' }),
+          }
+    const res = await client.chat.completions.create({ model, messages: [{ role: 'user', content: prompt }], ...params })
     const raw = res.choices[0]?.message?.content ?? ''
-    return { target: parseDecision(raw), latencyMs: Math.round(performance.now() - t0), raw, model, prompt }
+    return { target: parseDecision(raw), latencyMs: Math.round(performance.now() - t0), raw, model, provider, prompt }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    return { target: null, latencyMs: Math.round(performance.now() - t0), raw: '', model, prompt, error: msg }
+    return { target: null, latencyMs: Math.round(performance.now() - t0), raw: '', model, provider, prompt, error: msg }
   }
 }
 
