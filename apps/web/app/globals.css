@@ -1,0 +1,41 @@
+@import "@glance/ui/globals.css";
+@source "../app";
+@source "../components";
+
+html { scroll-behavior: smooth; background: #000; color-scheme: dark; }
+html, body, #root { height: auto; }
+body { min-height: 100vh; overflow-x: hidden; }
+
+.mono { font-family: var(--font-mono); }
+.blob {
+  position: absolute; border-radius: 9999px; filter: blur(60px); pointer-events: none;
+  background: radial-gradient(closest-side, rgba(255,255,255,.34), rgba(255,255,255,.08) 60%, transparent);
+}
+.glass-sm { border-radius: 1.5rem; }
+.glass-lg { border-radius: 2.5rem; }
+.pill {
+  display: inline-flex; align-items: center; gap: .6rem; padding: .45rem 1rem; border-radius: 999px;
+  font-family: var(--font-mono); font-size: .8rem; letter-spacing: .06em;
+  background: linear-gradient(135deg, rgba(255,255,255,.2), rgba(255,255,255,.05));
+  border: 1px solid rgba(255,255,255,.28); box-shadow: inset 0 1px 0 rgba(255,255,255,.5);
+}
+.rowline { border-top: 1px solid rgba(255,255,255,.14); }
+.track { height: 1.75rem; border-radius: 999px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); position: relative; overflow: hidden; }
+.fillbar { height: 100%; border-radius: 999px; background: linear-gradient(90deg, rgba(255,255,255,.3), rgba(255,255,255,.62)); box-shadow: inset 0 1.5px 0 rgba(255,255,255,.7); }
+.fillbar.hot { background: linear-gradient(90deg, rgba(255,255,255,.6), #fff); }
+.gaze-ring {
+  border: 2px dashed rgba(255,255,255,.85);
+  background: radial-gradient(closest-side, rgba(255,255,255,.28), rgba(255,255,255,.05) 70%, transparent);
+}
+.gaze-ring::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 1.1rem; height: 1.1rem; margin: -.55rem; border-radius: 50%;
+  background: #fff; box-shadow: 0 0 0 6px rgba(255,255,255,.25), 0 0 30px 8px rgba(255,255,255,.7);
+}
+.dashed-frame {
+  border: 1.5px dashed rgba(255,255,255,.35); border-radius: 1.5rem;
+  background: repeating-linear-gradient(135deg, rgba(255,255,255,.04) 0 14px, rgba(255,255,255,0) 14px 28px);
+}
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes drift { 0%,100% { transform: translate(0,0) } 50% { transform: translate(14px,-10px) } }
+  .gaze-ring { animation: drift 7s ease-in-out infinite; }
+}

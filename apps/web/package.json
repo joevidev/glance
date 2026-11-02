@@ -1,0 +1,33 @@
+{
+  "name": "@glance/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Glance public site: landing, benchmark results, disclosure (Next.js, static export)",
+  "type": "module",
+  "scripts": {
+    "sync-results": "node scripts/sync-results.mjs",
+    "dev": "node scripts/sync-results.mjs && next dev",
+    "build": "node scripts/sync-results.mjs && next build",
+    "start": "next start",
+    "check-types": "next typegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
+    "@glance/ui": "workspace:*",
+    "lucide-react": "^1.66.0",
+    "next": "^16.4.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@glance/typescript-config": "workspace:*",
+    "@tailwindcss/postcss": "^4.3.4",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "postcss": "^8.5.32",
+    "tailwindcss": "^4.3.3",
+    "typescript": "latest"
+  }
+}
