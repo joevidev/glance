@@ -19,7 +19,7 @@ Fireworks is suspended, so **the demo's model is OpenAI `gpt-6-astra`**. Always 
 Use ONE terminal app for everything (Terminal, iTerm, Warp...). Its Accessibility permission is what the cursor helper uses.
 
 ```bash
-cd /Users/dianamunozlar/Workspace/jctimana/buivo/hackathons/fireworks-nov02/glance
+cd /Users/Workspace/jctimana/buivo/hackathons/fireworks-nov02/glance
 
 pnpm install        # ONLY if pnpm preflight says "JavaScript dependencies are not installed"
 pnpm preflight      # the checklist; fix every ✖ before going on
