@@ -1,6 +1,7 @@
 import type { GazeCalibration } from './calibration';
 import { DwellDetector } from './dwell';
 import { OneEuroFilter2D } from './filter';
+import { FixationFilter } from './fixation';
 import type { GazeFrame, ScreenSize, Vec2 } from './types';
 
 export type TrackerUpdate = {
@@ -24,6 +25,7 @@ export type TrackerUpdate = {
 export class GazeTracker {
   readonly dwell: DwellDetector;
   private readonly filter: OneEuroFilter2D;
+  private readonly fixation: FixationFilter | null;
   private readonly holdBlink: number;
   private last: Vec2 | null = null;
   private lastTs: number | null = null;
@@ -35,15 +37,17 @@ export class GazeTracker {
   constructor(
     private readonly calib: GazeCalibration,
     private readonly screen: ScreenSize,
-    opts?: { filter?: { minCutoff?: number; beta?: number; dCutoff?: number }; dwell?: { radiusPx?: number; dwellMs?: number }; holdBlink?: number },
+    opts?: { filter?: { minCutoff?: number; beta?: number; dCutoff?: number }; fixation?: { windowMs?: number; saccadePx?: number; confirm?: number } | false; dwell?: { radiusPx?: number; dwellMs?: number }; holdBlink?: number },
   ) {
     this.filter = new OneEuroFilter2D(opts?.filter);
+    this.fixation = opts?.fixation ? new FixationFilter(opts.fixation) : null;
     this.dwell = new DwellDetector(opts?.dwell);
     this.holdBlink = opts?.holdBlink ?? 0.4;
   }
 
   reset(): void {
     this.filter.reset();
+    this.fixation?.reset();
     this.dwell.reset();
     this.last = null;
     this.lastTs = null;
@@ -63,9 +67,15 @@ export class GazeTracker {
     if (!raw) return { point: null, speedPxPerS: 0, pointPx: null, dwell: { progress: 0, fired: false, center: null }, held: false };
     if (this.lastTs !== null && frame.tsMs - this.lastTs > 700) {
       this.filter.reset();
+      this.fixation?.reset();
       this.speed = 0;
     }
-    const clamped = { x: Math.min(1, Math.max(0, raw.x)), y: Math.min(1, Math.max(0, raw.y)) };
+    let clamped = { x: Math.min(1, Math.max(0, raw.x)), y: Math.min(1, Math.max(0, raw.y)) };
+    if (this.fixation) {
+      // fixation / saccade stage works in px: median while fixating, pass-through on a saccade
+      const f = this.fixation.filter({ x: clamped.x * this.screen.width, y: clamped.y * this.screen.height }, frame.tsMs);
+      clamped = { x: f.x / this.screen.width, y: f.y / this.screen.height };
+    }
     const p = this.filter.filter(clamped, frame.tsMs);
     if (this.last && this.lastTs !== null) {
       const dt = (frame.tsMs - this.lastTs) / 1000;
@@ -80,6 +90,11 @@ export class GazeTracker {
     while (this.hist.length > 0 && frame.tsMs - this.hist[0]!.ts > 3000) this.hist.shift();
     this.lastDwell = this.dwell.update(px(p)!, frame.tsMs);
     return { point: { ...p }, speedPxPerS: this.speed, pointPx: px(p), dwell: this.lastDwell, held: false };
+  }
+
+  /** Drop the last `ms` ms of fixation history (frames just before a blink was detected are unreliable). */
+  discardRecent(ms: number): void {
+    this.fixation?.dropRecent(ms);
   }
 
   /** Smoothed point from about `msAgo` ms before the newest frame (null if no history). */

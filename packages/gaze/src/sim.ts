@@ -22,6 +22,8 @@ export type SimOptions = {
   script?: SimScriptEvent[];
   /** Mean time between natural two-eye blinks, ms. 0/undefined = none. */
   naturalBlinkEveryMs?: number;
+  /** Multiplies only the slow head wobble (default 1). 0 = still head, so iris noise is the only error source. */
+  headWobble?: number;
 };
 
 const DEFAULT_HOLD: Record<SimScriptEvent['kind'], number> = { blink: 150, winkLeft: 300, winkRight: 300, mouthOpen: 800, browsUp: 800 };
@@ -49,6 +51,7 @@ export function simulateGaze(path: Vec2[], opts?: SimOptions): { frames: GazeFra
   const msPer = opts?.msPerPoint ?? 1200;
   const sacc = opts?.saccadeMs ?? 90;
   const noise = opts?.noise ?? 1;
+  const hw = opts?.headWobble ?? 1;
   const start = opts?.startMs ?? 0;
   const rng = createRng(opts?.seed ?? 1);
   const script = [...(opts?.script ?? [])];
@@ -73,8 +76,8 @@ export function simulateGaze(path: Vec2[], opts?: SimOptions): { frames: GazeFra
     const k = smooth((t - idx * msPer) / sacc);
     const tx = prev.x + (cur.x - prev.x) * k;
     const ty = prev.y + (cur.y - prev.y) * k;
-    wobX = 0.98 * wobX + 0.02 * rng.gauss() * noise;
-    wobY = 0.98 * wobY + 0.02 * rng.gauss() * noise;
+    wobX = 0.98 * wobX + 0.02 * rng.gauss() * noise * hw;
+    wobY = 0.98 * wobY + 0.02 * rng.gauss() * noise * hw;
 
     const yaw = 0.18 * (tx - 0.5) + wobX;
     const pitch = 0.10 * (ty - 0.5) + wobY;

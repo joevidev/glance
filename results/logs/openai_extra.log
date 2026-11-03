@@ -1,0 +1,9 @@
+=== gpt-6-astra _rerun 15:35:22
+manifest locked, test sha ok, n_test=360
+360 cases from /Users/dianamunozlar/Workspace/jctimana/buivo/hackathons/fireworks-nov02/glance/data/dataset/test.jsonl; writing rows to /Users/dianamunozlar/Workspace/jctimana/buivo/hackathons/fireworks-nov02/glance/results/rows
+[frontier_rerun] 50/360 done, correct so far 24, errors 0
+[frontier_rerun] 100/360 done, correct so far 51, errors 0
+[frontier_rerun] 150/360 done, correct so far 86, errors 0
+[frontier_rerun] 200/360 done, correct so far 115, errors 0
+[frontier_rerun] 250/360 done, correct so far 144, errors 0
+[frontier_rerun] 300/360 done, correct so far 173, errors 0

@@ -22,6 +22,13 @@
 //!                                  (macOS "natural scrolling" is applied by the system
 //!                                  to real devices only, not to synthetic events.)
 //!   {"op":"down"|"up","button":"left"|"right"}  press/release for drags.
+//!   {"op":"type","text":"..."}    type arbitrary Unicode into the focused app (CGEvent keyboard
+//!                                  events carrying a unicode string, chunks of <=16 UTF-16 units
+//!                                  with a short delay). "\n" presses Return, "\t" presses Tab.
+//!                                  Reply: {"typed":<chars>}.
+//!   {"op":"key","key":"return","modifiers":["cmd","shift","alt","ctrl"]}  one key chord:
+//!                                  return tab escape delete space left right up down home end
+//!                                  pageup pagedown forwarddelete plus minus equal, a-z, 0-9.
 //!   {"op":"pos"}                   -> {"ok":true,"x":N,"y":N}
 //!   {"op":"trusted"}               -> {"ok":true,"trusted":bool}
 //!   {"op":"ping"}                  -> {"ok":true}
@@ -47,6 +54,10 @@ pub trait Backend {
     /// Post a mouse button transition at the current cursor position.
     fn button(&mut self, b: Button, down: bool, click_state: i64) -> Result<(), String>;
     fn scroll(&mut self, dy: i32, dx: i32) -> Result<(), String>;
+    /// Type one chunk of UTF-16 code units as a keyboard event carrying a unicode string.
+    fn type_chunk(&mut self, units: &[u16]) -> Result<(), String>;
+    /// Press and release a virtual key with CGEventFlags `flags`.
+    fn key(&mut self, code: u16, flags: u64) -> Result<(), String>;
     fn pos(&self) -> (f64, f64);
     fn trusted(&self) -> bool;
 }
@@ -73,6 +84,117 @@ fn num(v: &Value, k: &str) -> Result<f64, String> {
             .ok_or_else(|| format!("{k} must be a finite number")),
         None => Err(format!("missing {k}")),
     }
+}
+
+/// Max UTF-16 units per keyboard event (CGEventKeyboardSetUnicodeString handles up to 20; stay under).
+pub const CHUNK_UNITS: usize = 16;
+
+pub const FLAG_SHIFT: u64 = 0x0002_0000;
+pub const FLAG_CTRL: u64 = 0x0004_0000;
+pub const FLAG_ALT: u64 = 0x0008_0000;
+pub const FLAG_CMD: u64 = 0x0010_0000;
+
+pub const KEY_RETURN: u16 = 36;
+pub const KEY_TAB: u16 = 48;
+
+/// macOS ANSI virtual key code for a key name.
+pub fn keycode(name: &str) -> Option<u16> {
+    let n = name.to_lowercase();
+    let c = match n.as_str() {
+        "return" | "enter" => 36,
+        "tab" => 48,
+        "space" => 49,
+        "delete" | "backspace" => 51,
+        "escape" | "esc" => 53,
+        "forwarddelete" => 117,
+        "home" => 115,
+        "end" => 119,
+        "pageup" => 116,
+        "pagedown" => 121,
+        "left" => 123,
+        "right" => 124,
+        "down" => 125,
+        "up" => 126,
+        // cmd+plus is cmd+= on a US layout (browsers and apps zoom in on it)
+        "plus" | "equal" | "=" | "+" => 24,
+        "minus" | "-" => 27,
+        "a" => 0, "s" => 1, "d" => 2, "f" => 3, "h" => 4, "g" => 5, "z" => 6, "x" => 7,
+        "c" => 8, "v" => 9, "b" => 11, "q" => 12, "w" => 13, "e" => 14, "r" => 15,
+        "y" => 16, "t" => 17, "1" => 18, "2" => 19, "3" => 20, "4" => 21, "6" => 22,
+        "5" => 23, "9" => 25, "7" => 26, "8" => 28, "0" => 29, "o" => 31, "u" => 32,
+        "i" => 34, "p" => 35, "l" => 37, "j" => 38, "k" => 40, "n" => 45, "m" => 46,
+        _ => return None,
+    };
+    Some(c)
+}
+
+pub fn modifier_flag(name: &str) -> Result<u64, String> {
+    match name.to_lowercase().as_str() {
+        "cmd" | "command" | "meta" => Ok(FLAG_CMD),
+        "shift" => Ok(FLAG_SHIFT),
+        "alt" | "option" | "opt" => Ok(FLAG_ALT),
+        "ctrl" | "control" => Ok(FLAG_CTRL),
+        o => Err(format!("bad modifier: {o}")),
+    }
+}
+
+/// Parse {"key":"..","modifiers":[..]} into (virtual key code, CGEventFlags).
+pub fn parse_key(v: &Value) -> Result<(u16, u64), String> {
+    let name = v.get("key").and_then(Value::as_str).ok_or("missing key")?;
+    let code = keycode(name).ok_or_else(|| format!("unknown key: {name}"))?;
+    let mut flags = 0u64;
+    match v.get("modifiers") {
+        None | Some(Value::Null) => {}
+        Some(Value::Array(a)) => {
+            for m in a {
+                flags |= modifier_flag(m.as_str().ok_or("modifiers must be strings")?)?;
+            }
+        }
+        Some(_) => return Err("modifiers must be an array".into()),
+    }
+    Ok((code, flags))
+}
+
+/// One step of a typing plan.
+#[derive(Debug, PartialEq, Eq)]
+pub enum TypeStep {
+    Text(Vec<u16>),
+    Return,
+    Tab,
+}
+
+/// Split text into unicode chunks (never splitting a surrogate pair) with "\n" and "\t" as real keys.
+pub fn plan_text(text: &str) -> Vec<TypeStep> {
+    let mut steps = Vec::new();
+    let mut cur: Vec<u16> = Vec::new();
+    let flush = |cur: &mut Vec<u16>, steps: &mut Vec<TypeStep>| {
+        if !cur.is_empty() {
+            steps.push(TypeStep::Text(std::mem::take(cur)));
+        }
+    };
+    for ch in text.chars() {
+        match ch {
+            '\r' => {}
+            '\n' => {
+                flush(&mut cur, &mut steps);
+                steps.push(TypeStep::Return);
+            }
+            '\t' => {
+                flush(&mut cur, &mut steps);
+                steps.push(TypeStep::Tab);
+            }
+            c => {
+                let mut buf = [0u16; 2];
+                let u = c.encode_utf16(&mut buf);
+                if cur.len() + u.len() > CHUNK_UNITS {
+                    flush(&mut cur, &mut steps);
+                }
+                cur.extend_from_slice(u);
+            }
+        }
+    }
+    flush(&mut cur, &mut steps);
+    steps
 }
 
 impl<B: Backend> Handler<B> {
@@ -180,6 +302,34 @@ impl<B: Backend> Handler<B> {
                 self.backend.scroll(dy.round() as i32, dx.round() as i32)?;
                 Ok(Map::new())
             }
+            "type" => {
+                let text = req.get("text").and_then(Value::as_str).ok_or("missing text")?;
+                let mut n = 0usize;
+                for step in plan_text(text) {
+                    match step {
+                        TypeStep::Text(u) => {
+                            n += String::from_utf16_lossy(&u).chars().count();
+                            self.backend.type_chunk(&u)?
+                        }
+                        TypeStep::Return => {
+                            n += 1;
+                            self.backend.key(KEY_RETURN, 0)?
+                        }
+                        TypeStep::Tab => {
+                            n += 1;
+                            self.backend.key(KEY_TAB, 0)?
+                        }
+                    }
+                }
+                let mut m = Map::new();
+                m.insert("typed".into(), json!(n));
+                Ok(m)
+            }
+            "key" => {
+                let (code, flags) = parse_key(req)?;
+                self.backend.key(code, flags)?;
+                Ok(Map::new())
+            }
             other => Err(format!("unknown op: {other}")),
         }
     }
@@ -220,6 +370,9 @@ mod mac {
             w3: i32,
         ) -> CGEventRef;
         fn CGEventSetIntegerValueField(e: CGEventRef, field: u32, v: i64);
+        fn CGEventCreateKeyboardEvent(source: *mut c_void, key: u16, down: bool) -> CGEventRef;
+        fn CGEventKeyboardSetUnicodeString(e: CGEventRef, len: usize, s: *const u16);
+        fn CGEventSetFlags(e: CGEventRef, flags: u64);
         fn CGEventPost(tap: u32, e: CGEventRef);
         fn CGWarpMouseCursorPosition(p: CGPoint) -> i32;
         fn CFRelease(o: *const c_void);
@@ -314,6 +467,36 @@ mod mac {
             self.post(e)
         }
 
+        fn type_chunk(&mut self, units: &[u16]) -> Result<(), String> {
+            for down in [true, false] {
+                let e = unsafe { CGEventCreateKeyboardEvent(std::ptr::null_mut(), 0, down) };
+                if e.is_null() {
+                    return Err("failed to create CGEvent".into());
+                }
+                unsafe {
+                    CGEventKeyboardSetUnicodeString(e, units.len(), units.as_ptr());
+                    CGEventSetFlags(e, 0);
+                }
+                self.post(e)?;
+            }
+            // let the target app drain its event queue between chunks
+            std::thread::sleep(std::time::Duration::from_millis(5));
+            Ok(())
+        }
+
+        fn key(&mut self, code: u16, flags: u64) -> Result<(), String> {
+            for down in [true, false] {
+                let e = unsafe { CGEventCreateKeyboardEvent(std::ptr::null_mut(), code, down) };
+                if e.is_null() {
+                    return Err("failed to create CGEvent".into());
+                }
+                unsafe { CGEventSetFlags(e, flags) };
+                self.post(e)?;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(8));
+            Ok(())
+        }
+
         fn pos(&self) -> (f64, f64) {
             unsafe {
                 let e = CGEventCreate(std::ptr::null_mut());
@@ -382,6 +565,14 @@ mod tests {
         }
         fn scroll(&mut self, dy: i32, dx: i32) -> Result<(), String> {
             self.log.push(format!("scroll {dy} {dx}"));
+            Ok(())
+        }
+        fn type_chunk(&mut self, units: &[u16]) -> Result<(), String> {
+            self.log.push(format!("chunk {}", String::from_utf16_lossy(units)));
+            Ok(())
+        }
+        fn key(&mut self, code: u16, flags: u64) -> Result<(), String> {
+            self.log.push(format!("key {code} {flags:#x}"));
             Ok(())
         }
         fn pos(&self) -> (f64, f64) {
@@ -481,6 +672,90 @@ mod tests {
         reply(&mut h, r#"{"op":"scroll","dy":5,"dx":2}"#);
         assert_eq!(h.backend.log, ["scroll -120 0", "scroll 5 2"]);
         assert_eq!(reply(&mut h, r#"{"op":"scroll"}"#)["ok"], false);
+    }
+
+    #[test]
+    fn type_plain_text_counts_chars() {
+        let mut h = h();
+        let r = reply(&mut h, r#"{"op":"type","text":"Hi, héllo"}"#);
+        assert_eq!(r["ok"], true);
+        assert_eq!(r["typed"], 9);
+        assert_eq!(h.backend.log, ["chunk Hi, héllo"]);
+    }
+
+    #[test]
+    fn type_chunks_and_keeps_surrogate_pairs() {
+        let mut h = h();
+        // 10 emoji = 20 UTF-16 units -> must split into chunks of <=16 units, never mid-pair
+        let text = "😀".repeat(10);
+        let r = reply(&mut h, &format!(r#"{{"op":"type","text":"{text}"}}"#));
+        assert_eq!(r["typed"], 10);
+        assert_eq!(h.backend.log.len(), 2);
+        let joined: String = h.backend.log.iter().map(|l| l.trim_start_matches("chunk ")).collect();
+        assert_eq!(joined, text);
+        for step in plan_text(&text) {
+            if let TypeStep::Text(u) = step {
+                assert!(u.len() <= CHUNK_UNITS);
+                assert!(String::from_utf16(&u).is_ok());
+            }
+        }
+    }
+
+    #[test]
+    fn type_newline_and_tab_are_keys() {
+        let mut h = h();
+        let r = reply(&mut h, r#"{"op":"type","text":"a\nb\tc\r\n"}"#);
+        assert_eq!(r["ok"], true);
+        assert_eq!(
+            h.backend.log,
+            ["chunk a", "key 36 0x0", "chunk b", "key 48 0x0", "chunk c", "key 36 0x0"]
+        );
+        assert_eq!(reply(&mut h, r#"{"op":"type"}"#)["ok"], false);
+        assert_eq!(reply(&mut h, r#"{"op":"type","text":5}"#)["ok"], false);
+    }
+
+    #[test]
+    fn key_chords_parse() {
+        let mut h = h();
+        let cases = [
+            (r#"{"op":"key","key":"return"}"#, "key 36 0x0"),
+            (r#"{"op":"key","key":"tab"}"#, "key 48 0x0"),
+            (r#"{"op":"key","key":"escape"}"#, "key 53 0x0"),
+            (r#"{"op":"key","key":"delete"}"#, "key 51 0x0"),
+            (r#"{"op":"key","key":"left"}"#, "key 123 0x0"),
+            (r#"{"op":"key","key":"a","modifiers":["cmd"]}"#, "key 0 0x100000"),
+            (r#"{"op":"key","key":"c","modifiers":["cmd"]}"#, "key 8 0x100000"),
+            (r#"{"op":"key","key":"v","modifiers":["cmd"]}"#, "key 9 0x100000"),
+            (r#"{"op":"key","key":"plus","modifiers":["cmd"]}"#, "key 24 0x100000"),
+            (r#"{"op":"key","key":"minus","modifiers":["cmd"]}"#, "key 27 0x100000"),
+            (r#"{"op":"key","key":"left","modifiers":["ctrl"]}"#, "key 123 0x40000"),
+            (r#"{"op":"key","key":"right","modifiers":["ctrl"]}"#, "key 124 0x40000"),
+            (r#"{"op":"key","key":"r","modifiers":["cmd"]}"#, "key 15 0x100000"),
+            (r#"{"op":"key","key":"w","modifiers":["cmd"]}"#, "key 13 0x100000"),
+            (r#"{"op":"key","key":"z","modifiers":["cmd","shift"]}"#, "key 6 0x120000"),
+            (r#"{"op":"key","key":"x","modifiers":["alt","ctrl","shift","cmd"]}"#, "key 7 0x1e0000"),
+        ];
+        for (req, want) in cases {
+            h.backend.log.clear();
+            let r = reply(&mut h, req);
+            assert_eq!(r["ok"], true, "{req}");
+            assert_eq!(h.backend.log, [want], "{req}");
+        }
+    }
+
+    #[test]
+    fn key_rejects_bad_input() {
+        let mut h = h();
+        for s in [
+            r#"{"op":"key"}"#,
+            r#"{"op":"key","key":"nope"}"#,
+            r#"{"op":"key","key":"a","modifiers":["hyper"]}"#,
+            r#"{"op":"key","key":"a","modifiers":"cmd"}"#,
+            r#"{"op":"key","key":"a","modifiers":[1]}"#,
+        ] {
+            assert_eq!(reply(&mut h, s)["ok"], false, "{s}");
+        }
+        assert!(h.backend.log.is_empty());
     }
 
     #[test]

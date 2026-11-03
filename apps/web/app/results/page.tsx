@@ -100,7 +100,7 @@ export default function Results() {
       <section className="mx-auto mt-10 grid max-w-6xl gap-4 px-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
         <Stat k="Gaze adds" v={`${signed(gain.boot_diff_pts)} pts`} d={<>open model with vs without the gaze point. McNemar p = {fmtP(gain.mcnemar_p)}, CI {signed(gain.boot_ci95[0])} to {signed(gain.boot_ci95[1])}. Real: both tests agree.</>} />
         <Stat k="LoRA vs its base" v={`${signed(lora.boot_diff_pts)} pts`} d={<>{pct(lora.acc_a)} vs {pct(lora.acc_b)}. p = {fmtP(lora.mcnemar_p)}, CI {signed(lora.boot_ci95[0])} to {signed(lora.boot_ci95[1])}. Tests disagree; no gain.</>} />
-        <Stat k="Cost / 1,000 commands" v={`${usd(flashSys.cost_per_1k!)} vs ${usd(frontier.cost_per_1k!)}`} d={<>untrained flash ({pct(flashSys.acc)}) vs frontier ({pct(frontier.acc)}); p = {fmtP(flash.mcnemar_p)}, no reliable difference.</>} />
+        <Stat k="Cost / 1,000 commands" v={`${usd(flashSys.cost_per_1k!)} vs ${usd(sys("frontier_sol").cost_per_1k!)}`} d={<>untrained flash ({pct(flashSys.acc)}) vs gpt-6.1-sol ({pct(sys("frontier_sol").acc)}), the cheapest OpenAI model that matched {summary.frontier_name} at {usd(frontier.cost_per_1k!)}; p = {fmtP(pair("open_base_flash_vs_frontier_sol").mcnemar_p)}, no reliable difference.</>} />
         <Stat k="Latency p50" v={`${secs(base.latency_p50_ms!)} vs ${secs(frontier.latency_p50_ms!)}`} d="open reasoning model vs frontier. No latency win for the open models." />
       </section>
 

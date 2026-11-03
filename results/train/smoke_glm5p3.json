@@ -1,0 +1,85 @@
+{
+  "base_model": "accounts/fireworks/models/glm-5p3",
+  "tokenizer": "zai-org/GLM-5.3-Flash",
+  "timings_s": {
+    "tokenizer_load": 3.33,
+    "client_creation": 3.99,
+    "save_weights_for_sampler": 8.59,
+    "sampler_startup": 0.02,
+    "sample_latency_first": 4.004,
+    "sample_latency_median_rest": 1.196
+  },
+  "ok": true,
+  "example_tokens": [
+    227,
+    203,
+    185
+  ],
+  "session": "ts-c16d4c640ad24f0c877c0c197ccb7086",
+  "run_id": "run-3ecfa26d3146433a81999b478abb13cd",
+  "steps": [
+    {
+      "step": 1,
+      "forward_backward_s": 6.63,
+      "optim_step_s": 2.47,
+      "metrics": {
+        "loss:sum": 300.1012878417969,
+        "total_tokens:sum": 3265.0,
+        "dp_sharded_counts:min": 0.0,
+        "dp_sharded_counts:max": 0.0,
+        "local_input_sequences:sum": 16.0,
+        "response_tokens": 128.0
+      }
+    },
+    {
+      "step": 2,
+      "forward_backward_s": 7.08,
+      "optim_step_s": 1.42,
+      "metrics": {
+        "loss:sum": 244.37625122070312,
+        "total_tokens:sum": 3265.0,
+        "dp_sharded_counts:min": 0.0,
+        "dp_sharded_counts:max": 0.0,
+        "local_input_sequences:sum": 16.0,
+        "response_tokens": 128.0
+      }
+    }
+  ],
+  "snapshot": "buivo/run-3ecfa26d3146433a81999b478abb13cd/smoke-1-6d96dac2",
+  "samples": [
+    {
+      "id": "smoke-0",
+      "answer": 15,
+      "raw": "We need answer JSON only target id. Need infer element user means \"open Compose\". Screen 1280x800",
+      "prompt_tokens": 220,
+      "out_tokens": 24,
+      "latency_s": 4.004
+    },
+    {
+      "id": "smoke-1",
+      "answer": 10,
+      "raw": "We need answer JSON only. Need infer element. Need parse. User says control computer for someone looking at screen and speaking",
+      "prompt_tokens": 196,
+      "out_tokens": 24,
+      "latency_s": 1.196
+    },
+    {
+      "id": "smoke-2",
+      "answer": 12,
+      "raw": "We need answer JSON only. Need pick element user means \"open Compose\". Screen 1280x800. G",
+      "prompt_tokens": 178,
+      "out_tokens": 24,
+      "latency_s": 1.202
+    },
+    {
+      "id": "smoke-3",
+      "answer": 13,
+      "raw": "We need answer JSON only. Need pick element. User says open Inbox. Elements include button Inbox at 862,",
+      "prompt_tokens": 219,
+      "out_tokens": 24,
+      "latency_s": 1.142
+    }
+  ],
+  "note": "training-sampler latency, NOT serving latency; 2 steps of 16 synthetic cases, so predictions are meaningless",
+  "session_deleted": true
+}

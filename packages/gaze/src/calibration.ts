@@ -202,3 +202,28 @@ function dot(x: number[], w: number[][], col: 0 | 1): number {
   for (let k = 0; k < x.length; k++) s += x[k]! * w[k]![col]!;
   return s;
 }
+
+/**
+ * Per-dot outlier rejection for calibration. Keeps the frames of one dot whose core gaze features (gx, gy, gly) and eyelid
+ * openness are within `k` robust sigmas (1.4826 * MAD, with a floor) of the dot's median, and drops frames with an eye closing
+ * (blink score above `maxBlink`). Returns the kept frames; never returns fewer than half of the input (then returns the input
+ * minus blink frames), so a noisy but consistent dot is not thrown away.
+ */
+export function rejectOutlierFrames(frames: GazeFrame[], k = 3.5, maxBlink = 0.25): GazeFrame[] {
+  const ok = frames.filter((f) => Math.max(f.blinkLeft, f.blinkRight) <= maxBlink && f.features.every(Number.isFinite));
+  if (ok.length < 6) return ok;
+  const cols = [0, 1, 2, 9];
+  const med = (a: number[]) => {
+    const s = [...a].sort((x, y) => x - y);
+    const m = s.length >> 1;
+    return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2;
+  };
+  const stats = cols.map((c) => {
+    const v = ok.map((f) => f.features[c]!);
+    const m = med(v);
+    const mad = med(v.map((x) => Math.abs(x - m)));
+    return { c, m, s: Math.max(1.4826 * mad, 1e-4) };
+  });
+  const kept = ok.filter((f) => stats.every((q) => Math.abs(f.features[q.c]! - q.m) <= k * q.s));
+  return kept.length >= ok.length / 2 ? kept : ok;
+}

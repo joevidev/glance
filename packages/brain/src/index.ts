@@ -10,10 +10,10 @@ export const OPENAI_DEFAULT_MODEL = 'gpt-6-astra'
 
 export type Provider = 'fireworks' | 'openai'
 
-/** GLANCE_PROVIDER=openai|fireworks (default fireworks). */
+/** GLANCE_PROVIDER=openai|fireworks (default openai: the Fireworks account is suspended at its spending cap; set fireworks to use it). */
 export function resolveProvider(explicit?: Provider): Provider {
-  const v = (explicit ?? process.env.GLANCE_PROVIDER ?? 'fireworks').toLowerCase()
-  return v === 'openai' ? 'openai' : 'fireworks'
+  const v = (explicit ?? process.env.GLANCE_PROVIDER ?? 'openai').toLowerCase()
+  return v === 'fireworks' ? 'fireworks' : 'openai'
 }
 
 /** Model id for a provider: GLANCE_MODEL wins, else the provider's default. */

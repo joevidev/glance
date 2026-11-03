@@ -4,7 +4,8 @@ import { join } from 'node:path'
 import { app } from 'electron'
 import type { Settings } from '../shared/ipc'
 
-export const DEFAULT_SETTINGS: Settings = { paused: false, cursorControl: true, radialDwell: false, debug: true, pick: 'model', withGaze: true, magnet: true }
+const SETTINGS_VERSION = 2
+export const DEFAULT_SETTINGS: Settings = { paused: false, cursorControl: true, radialDwell: false, debug: true, pick: 'model', withGaze: true, magnet: false }
 
 const dir = () => {
   const d = join(app.getPath('userData'), 'calibration')
@@ -42,14 +43,18 @@ export function loadSettings(): Settings {
   try {
     const s = JSON.parse(readFileSync(settingsFile(), 'utf8')) as Partial<Settings>
     // paused never persists: the app always starts live
-    return { ...DEFAULT_SETTINGS, ...s, paused: false }
+    const loaded = { ...DEFAULT_SETTINGS, ...s, paused: false }
+    // Settings written before v2 could hold cursorControl=false (a FAKE/SIM override that got saved) and magnet=true, which left the
+    // cursor not following the eyes. Reset those two once.
+    if ((s as { settingsV?: number }).settingsV !== SETTINGS_VERSION) return { ...loaded, cursorControl: true, magnet: false }
+    return loaded
   } catch {
     return { ...DEFAULT_SETTINGS }
   }
 }
 export function saveSettings(s: Settings): void {
   try {
-    writeFileSync(settingsFile(), JSON.stringify(s))
+    writeFileSync(settingsFile(), JSON.stringify({ ...s, settingsV: SETTINGS_VERSION }))
   } catch {
     /* ignore */
   }

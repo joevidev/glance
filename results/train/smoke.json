@@ -1,0 +1,85 @@
+{
+  "base_model": "accounts/fireworks/models/glm-5p3-flash",
+  "tokenizer": "zai-org/GLM-5.3-Flash",
+  "timings_s": {
+    "tokenizer_load": 2.2,
+    "client_creation": 347.34,
+    "save_weights_for_sampler": 62.64,
+    "sampler_startup": 0.01,
+    "sample_latency_first": 1.304,
+    "sample_latency_median_rest": 0.794
+  },
+  "ok": true,
+  "example_tokens": [
+    227,
+    203,
+    185
+  ],
+  "session": "ts-6992d94753bd49bfb45a935438287c2b",
+  "run_id": "run-16a9907c588d487faab29c61d237ff35",
+  "steps": [
+    {
+      "step": 1,
+      "forward_backward_s": 47.63,
+      "optim_step_s": 32.37,
+      "metrics": {
+        "loss:sum": 230.00173950195312,
+        "total_tokens:sum": 3265.0,
+        "dp_sharded_counts:min": 0.0,
+        "dp_sharded_counts:max": 0.0,
+        "local_input_sequences:sum": 16.0,
+        "response_tokens": 128.0
+      }
+    },
+    {
+      "step": 2,
+      "forward_backward_s": 12.61,
+      "optim_step_s": 30.94,
+      "metrics": {
+        "loss:sum": 81.23239135742188,
+        "total_tokens:sum": 3265.0,
+        "dp_sharded_counts:min": 0.0,
+        "dp_sharded_counts:max": 0.0,
+        "local_input_sequences:sum": 16.0,
+        "response_tokens": 128.0
+      }
+    }
+  ],
+  "snapshot": "buivo/run-16a9907c588d487faab29c61d237ff35/smoke-1-baa1f18c",
+  "samples": [
+    {
+      "id": "smoke-0",
+      "answer": 15,
+      "raw": "</think>{\"target\": 15}",
+      "prompt_tokens": 220,
+      "out_tokens": 8,
+      "latency_s": 1.304
+    },
+    {
+      "id": "smoke-1",
+      "answer": 10,
+      "raw": "</think>{\"target\": 10}",
+      "prompt_tokens": 196,
+      "out_tokens": 8,
+      "latency_s": 0.794
+    },
+    {
+      "id": "smoke-2",
+      "answer": 12,
+      "raw": "</think>{\"target\": 12}",
+      "prompt_tokens": 178,
+      "out_tokens": 8,
+      "latency_s": 0.844
+    },
+    {
+      "id": "smoke-3",
+      "answer": 13,
+      "raw": "</think>{\"target\": 13}",
+      "prompt_tokens": 219,
+      "out_tokens": 8,
+      "latency_s": 0.772
+    }
+  ],
+  "note": "training-sampler latency, NOT serving latency; 2 steps of 16 synthetic cases, so predictions are meaningless",
+  "session_deleted": true
+}

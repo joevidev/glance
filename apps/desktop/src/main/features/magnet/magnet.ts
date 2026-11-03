@@ -97,6 +97,8 @@ export class MagnetCore {
   private fixStart: number | null = null
   private snapped: MagnetElement | null = null
   private cur: Pt | null = null
+  private wasSnapped = false
+  private glideUntil = 0
   private hist: { ts: number; target: Pt; snapped: boolean }[] = []
 
   constructor(params: Partial<MagnetParams> = {}) {
@@ -140,6 +142,8 @@ export class MagnetCore {
     this.snapped = null
     this.fixStart = null
     this.cur = null
+    this.wasSnapped = false
+    this.glideUntil = 0
     this.prevRaw = null
     this.speed = 0
   }
@@ -173,6 +177,8 @@ export class MagnetCore {
       this.snapped = null
       this.fixStart = null
       this.cur = raw
+      this.wasSnapped = false
+      this.glideUntil = 0
       this.hist.length = 0
       return raw
     }
@@ -198,16 +204,20 @@ export class MagnetCore {
     this.hist.push({ ts: now, target, snapped: !!this.snapped })
     while (this.hist.length && now - this.hist[0]!.ts > 1500) this.hist.shift()
 
-    // ease: free-running gaze passes through untouched; only snap / unsnap transitions are interpolated
+    // ease: free-running gaze passes through EXACTLY (no extra filter, no lag); only a snap, and the short glide
+    // back after a release (never after a saccade: the eye is already moving), are interpolated
     if (!this.cur) this.cur = raw
-    const k = 1 - Math.exp((-dt * 2.3) / this.p.easeMs)
-    if (!this.snapped && Math.hypot(this.cur.x - raw.x, this.cur.y - raw.y) < 1) {
+    if (this.wasSnapped && !this.snapped && this.speed <= this.p.saccadeSpeed) this.glideUntil = now + 2 * this.p.easeMs
+    this.wasSnapped = !!this.snapped
+    if (!this.snapped && now >= this.glideUntil) {
       this.cur = raw
       return raw
     }
+    const k = 1 - Math.exp((-dt * 2.3) / this.p.easeMs)
     const nx = this.cur.x + (target.x - this.cur.x) * k
     const ny = this.cur.y + (target.y - this.cur.y) * k
     this.cur = Math.hypot(nx - target.x, ny - target.y) < 0.75 ? target : { x: nx, y: ny }
+    if (!this.snapped && this.cur === target) this.glideUntil = 0
     return this.cur
   }
 

@@ -69,7 +69,8 @@ function appInfo(): AppInfo {
 
 function applySettings(patch: Partial<Settings>): Settings {
   settings = { ...settings, ...patch }
-  saveSettings(settings)
+  // FAKE/SIM force cursorControl off in memory only: never write that override into the user's saved settings
+  saveSettings(FAKE || SIM ? { ...settings, cursorControl: loadSettings().cursorControl } : settings)
   browse.setDebug(settings.debug)
   controller.setSettings(settings)
   broadcast('settings:changed', settings)

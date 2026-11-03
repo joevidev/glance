@@ -1,0 +1,38 @@
+{
+  "accounts/fireworks/models/qwen3p8-27b": {
+    "result": "ok",
+    "started": "12:31:53",
+    "client_creation_s": 1.55,
+    "session": "ts-cc878d5130974107a96c31babb77e603",
+    "one_step_s": 55.35,
+    "session_deleted": true,
+    "finished": "12:32:51"
+  },
+  "accounts/fireworks/models/muse-glimmer-30b": {
+    "result": "ok",
+    "started": "12:31:53",
+    "client_creation_s": 0.89,
+    "session": "ts-91a1e4de1afd42cb81241f774b79bfdc",
+    "one_step_s": 11.22,
+    "session_deleted": true,
+    "finished": "12:32:06"
+  },
+  "accounts/fireworks/models/qwen3p6-35b-a3b": {
+    "result": "ok",
+    "started": "12:31:53",
+    "client_creation_s": 11.0,
+    "session": "ts-e822b165481045c3bb9514506adc23f3",
+    "one_step_s": 36.44,
+    "session_deleted": true,
+    "finished": "12:32:42"
+  },
+  "accounts/fireworks/models/glm-5p3": {
+    "result": "ok",
+    "started": "12:31:53",
+    "client_creation_s": 1.14,
+    "session": "ts-a7ab90b00be74ab2bc7f18a704479814",
+    "one_step_s": 8.83,
+    "session_deleted": true,
+    "finished": "12:32:04"
+  }
+}

@@ -5,7 +5,7 @@ Polyglot monorepo: **Turborepo + pnpm** at the root. A package can be in any lan
 ```
 apps/
   desktop/        Electron + electron-vite + React + Tailwind v4 + shadcn  (the product)
-  web/            Next.js landing + results (placeholder until the benchmark is done)
+  web/            Next.js landing + results + disclosure (static export, built from results/summary.json)
 packages/
   contracts/      JSON schemas, the intent PROMPT (shared by eval and app), TS types/zod, golden fixture
   elements/       extract.js: DOM element extractor used by the crawl AND the in-app browser

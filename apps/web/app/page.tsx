@@ -2,7 +2,7 @@ import { Mark } from "@glance/ui/components/mark";
 import { Play } from "lucide-react";
 import Link from "next/link";
 import { Glass, Section } from "../components/bits";
-import { pair, pct, signed, summary, sys } from "../lib/results";
+import { pair, pct, signed, summary, sys, usd } from "../lib/results";
 import { REPO, REPO_URL } from "../lib/site";
 
 const inbox = [
@@ -114,7 +114,10 @@ export default function Home() {
             <p className="mt-6 max-w-xl text-lg font-light leading-relaxed text-w80 sm:text-xl">
               Say “open that” and the assistant knows which “that.” Your eyes
               point, your voice commands, and a model picks the exact element,
-              even when the eye tracker is 100 to 200 px off.
+              even when the eye tracker is 100 to 200 px off. Measured on 360
+              held-out commands from 8 unseen sites: gaze + voice beats voice
+              alone by 10.6 points, and an open model with no training matches
+              the frontier.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
@@ -226,8 +229,8 @@ export default function Home() {
         eyebrow="Measured, not claimed"
         title={
           <>
-            Gaze + command beats either alone.{" "}
-            <em>Our LoRA did not beat its base.</em>
+            Gaze + voice beats either alone.{" "}
+            <em>An open model with no training matches the frontier.</em>
           </>
         }
       >
@@ -259,7 +262,8 @@ export default function Home() {
             </div>
             <p className="mt-2 text-sm text-w60">
               untrained open flash model; no reliable difference from the
-              frontier model at a fraction of the cost
+              frontier models, at {usd(sys("open_base_flash").cost_per_1k!)} vs {usd(sys("frontier_sol").cost_per_1k!)} per 1,000 commands for the
+              cheapest OpenAI model that matched it
             </p>
           </Glass>
         </div>

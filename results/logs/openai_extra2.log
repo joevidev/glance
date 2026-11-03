@@ -1,0 +1,49 @@
+=== gpt-6-astra _rerun 15:36:51
+manifest locked, test sha ok, n_test=360
+360 cases from /Users/dianamunozlar/Workspace/jctimana/buivo/hackathons/fireworks-nov02/glance/data/dataset/test.jsonl; writing rows to /Users/dianamunozlar/Workspace/jctimana/buivo/hackathons/fireworks-nov02/glance/results/rows
+[frontier_rerun] 50/360 done, correct so far 23, errors 0
+[frontier_rerun] 100/360 done, correct so far 52, errors 0
+[frontier_rerun] 150/360 done, correct so far 86, errors 0
+[frontier_rerun] 200/360 done, correct so far 115, errors 0
+[frontier_rerun] 250/360 done, correct so far 143, errors 0
+[frontier_rerun] 300/360 done, correct so far 173, errors 0
+[frontier_rerun] 350/360 done, correct so far 201, errors 0
+[frontier_rerun] 360/360 done, correct so far 205, errors 0
+frontier: n=360 acc=56.9% parse_fail_or_none=0 api_errors=0 truncated_length=0 rows_that_needed_retries=0 total_cost_usd=4.41582
+=== gpt-6.1-sol _sol 15:37:09
+manifest locked, test sha ok, n_test=360
+360 cases from /Users/dianamunozlar/Workspace/jctimana/buivo/hackathons/fireworks-nov02/glance/data/dataset/test.jsonl; writing rows to /Users/dianamunozlar/Workspace/jctimana/buivo/hackathons/fireworks-nov02/glance/results/rows
+[frontier_sol] 50/360 done, correct so far 25, errors 0
+[frontier_sol] 100/360 done, correct so far 52, errors 0
+[frontier_sol] 150/360 done, correct so far 87, errors 0
+[frontier_sol] 200/360 done, correct so far 115, errors 0
+[frontier_sol] 250/360 done, correct so far 144, errors 0
+[frontier_sol] 300/360 done, correct so far 173, errors 0
+[frontier_sol] 350/360 done, correct so far 201, errors 0
+[frontier_sol] 360/360 done, correct so far 206, errors 0
+frontier: n=360 acc=57.2% parse_fail_or_none=0 api_errors=0 truncated_length=0 rows_that_needed_retries=0 total_cost_usd=0.889844
+=== gpt-5.4 _g54 15:38:29
+manifest locked, test sha ok, n_test=360
+360 cases from /Users/dianamunozlar/Workspace/jctimana/buivo/hackathons/fireworks-nov02/glance/data/dataset/test.jsonl; writing rows to /Users/dianamunozlar/Workspace/jctimana/buivo/hackathons/fireworks-nov02/glance/results/rows
+[frontier_g54] 50/360 done, correct so far 21, errors 0
+[frontier_g54] 100/360 done, correct so far 49, errors 0
+[frontier_g54] 150/360 done, correct so far 77, errors 0
+[frontier_g54] 200/360 done, correct so far 102, errors 0
+[frontier_g54] 250/360 done, correct so far 132, errors 0
+[frontier_g54] 300/360 done, correct so far 159, errors 0
+[frontier_g54] 350/360 done, correct so far 181, errors 0
+[frontier_g54] 360/360 done, correct so far 186, errors 0
+frontier: n=360 acc=51.7% parse_fail_or_none=0 api_errors=0 truncated_length=0 rows_that_needed_retries=0 total_cost_usd=1.0376925
+=== gpt-5.4-mini _g54mini 15:39:08
+manifest locked, test sha ok, n_test=360
+360 cases from /Users/dianamunozlar/Workspace/jctimana/buivo/hackathons/fireworks-nov02/glance/data/dataset/test.jsonl; writing rows to /Users/dianamunozlar/Workspace/jctimana/buivo/hackathons/fireworks-nov02/glance/results/rows
+[frontier_g54mini] 50/360 done, correct so far 17, errors 0
+[frontier_g54mini] 100/360 done, correct so far 40, errors 0
+[frontier_g54mini] 150/360 done, correct so far 66, errors 0
+[frontier_g54mini] 200/360 done, correct so far 89, errors 0
+[frontier_g54mini] 250/360 done, correct so far 108, errors 0
+[frontier_g54mini] 300/360 done, correct so far 130, errors 0
+[frontier_g54mini] 350/360 done, correct so far 150, errors 0
+[frontier_g54mini] 360/360 done, correct so far 154, errors 0
+frontier: n=360 acc=42.8% parse_fail_or_none=0 api_errors=0 truncated_length=0 rows_that_needed_retries=0 total_cost_usd=0.31629375
+finished

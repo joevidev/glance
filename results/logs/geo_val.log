@@ -1,0 +1,34 @@
+[open_base] 50/300 done, correct so far 38, errors 0
+[open_base] 100/300 done, correct so far 64, errors 0
+[open_base] 150/300 done, correct so far 87, errors 0
+[open_base] 200/300 done, correct so far 116, errors 0
+[open_base] 250/300 done, correct so far 136, errors 19
+[open_base] 300/300 done, correct so far 141, errors 54
+[open_base_geo] 50/300 done, correct so far 0, errors 50
+[open_base_geo] 100/300 done, correct so far 0, errors 100
+[open_base_geo] 150/300 done, correct so far 0, errors 150
+[open_base_geo] 200/300 done, correct so far 0, errors 200
+[open_base_geo] 250/300 done, correct so far 0, errors 250
+[open_base_geo] 300/300 done, correct so far 0, errors 300
+VERDICT: NO-GO
+
+Criterion (fixed in advance): GO iff geo minus plain >= +5.0 accuracy points overall on the validation holdout. Observed: -47.00 points.
+
+Model accounts/fireworks/models/glm-5p3, temperature 0, max_tokens 8192, same settings for both prompts. Holdout sites (4 train sites with smallest sha256(site)): slack.com, cloudflare.com, toscrape.com, mozilla.org. n = 300 cases (smallest sha256(case id) among those sites' cases; test set never touched).
+
+| | plain prompt | geo prompt |
+|---|---|---|
+| overall accuracy | 47.0% | 0.0% |
+| replies truncated at max_tokens (wrong) | 11 | 0 |
+| cost (USD, measured tokens x list price) | 1.506 | 0.000 |
+
+By command_type:
+
+| command_type | n | plain | geo |
+|---|---|---|---|
+| deictic | 99 | 25.3% | 0.0% |
+| ordinal | 48 | 75.0% | 0.0% |
+| partial_name | 72 | 75.0% | 0.0% |
+| role | 81 | 32.1% | 0.0% |
+
+Rows: results/val_rows/open_base.jsonl, open_base_geo.jsonl (validation only, never in results/rows).

@@ -1,0 +1,11 @@
+{
+  "state": "done",
+  "step": 2,
+  "total_steps": 2,
+  "elapsed_s": 42.5,
+  "last_update": "2026-11-02T12:35:45-0800",
+  "session": "ts-c16d4c640ad24f0c877c0c197ccb7086",
+  "run_id": "run-3ecfa26d3146433a81999b478abb13cd",
+  "base_model": "accounts/fireworks/models/glm-5p3",
+  "errors": []
+}

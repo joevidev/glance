@@ -90,6 +90,7 @@ export interface Evaluation {
 
 /** The live tracker's settings (engine.applyCalibration): fixation median + One Euro smoothing + dwell. */
 export const trackerOpts = {
+  holdBlink: 0.6, // the tracker's own blink hold must sit above a relaxed eye's score; the engine freezes earlier, from the calibrated level
   dwell: { radiusPx: 70, dwellMs: 1000 },
   filter: { minCutoff: 1.0, beta: 0.8 },
   /** fixation = running median of the last 250 ms of raw gaze; a saccade (2 samples > 220 px away) restarts it. See quality.test.ts. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GestureCalibrator, GestureDetector, type GestureEvent } from './gestures';
+import { DEFAULT_THRESHOLDS, GestureCalibrator, GestureDetector, type GestureEvent } from './gestures';
 import { mkFrame } from './testutil';
 import type { GazeFrame } from './types';
 
@@ -89,6 +89,93 @@ describe('winks', () => {
   });
 });
 
+describe('eyes_closed_long', () => {
+  const both = (from: number, to: number) => (t: number) => ({ blinkLeft: t >= from && t < to ? 0.9 : 0.05, blinkRight: t >= from && t < to ? 0.9 : 0.05 });
+
+  it('a natural blink (150 ms) and a slow blink (400 ms) do NOT fire', () => {
+    expect(run(new GestureDetector(), 2000, both(400, 550))).toEqual([]);
+    expect(run(new GestureDetector(), 2000, both(400, 800))).toEqual([]);
+  });
+
+  it('a one-eye closure (2 s) does NOT fire, and no wink either', () => {
+    expect(run(new GestureDetector(), 4000, (t) => ({ blinkLeft: t >= 400 && t < 2400 ? 0.9 : 0.05 }))).toEqual([]);
+    expect(run(new GestureDetector(), 4000, (t) => ({ blinkRight: t >= 400 && t < 2400 ? 0.9 : 0.05 }))).toEqual([]);
+  });
+
+  it('a 700 ms double close fires exactly once, while the eyes are still closed', () => {
+    const det = new GestureDetector();
+    const ev = run(det, 3000, both(400, 2200));
+    expect(types(ev)).toEqual(['eyes_closed_long']);
+    expect(ev[0]!.tsMs).toBeGreaterThanOrEqual(400 + 700);
+    expect(ev[0]!.tsMs).toBeLessThan(400 + 700 + 2 * DT);
+  });
+
+  it('a 1.5 s closure still fires only once, and emits no wink', () => {
+    expect(types(run(new GestureDetector(), 3000, both(400, 1900)))).toEqual(['eyes_closed_long']);
+  });
+
+  it('just under the time (600 ms) does not fire; the time is configurable', () => {
+    expect(run(new GestureDetector(), 2000, both(400, 1000))).toEqual([]);
+    expect(types(run(new GestureDetector({ eyesClosedLongMs: 500 }), 2000, both(400, 1000)))).toEqual(['eyes_closed_long']);
+  });
+
+  it('re-arms after the eyes reopen: two separate long closes fire twice', () => {
+    const ev = run(new GestureDetector(), 5000, (t) => {
+      const c = (t >= 400 && t < 1400) || (t >= 2500 && t < 3500);
+      return { blinkLeft: c ? 0.9 : 0.05, blinkRight: c ? 0.9 : 0.05 };
+    });
+    expect(types(ev)).toEqual(['eyes_closed_long', 'eyes_closed_long']);
+  });
+
+  it('a blink, then a pause, then a blink never adds up to a long close', () => {
+    const ev = run(new GestureDetector(), 3000, (t) => {
+      const c = (t >= 400 && t < 700) || (t >= 900 && t < 1200) || (t >= 1400 && t < 1700);
+      return { blinkLeft: c ? 0.9 : 0.05, blinkRight: c ? 0.9 : 0.05 };
+    });
+    expect(ev).toEqual([]);
+  });
+
+  it('a 100 ms flicker of one eye in the middle of the close does not restart the timer', () => {
+    const ev = run(new GestureDetector(), 3000, (t) => ({
+      blinkLeft: t >= 400 && t < 1700 ? 0.9 : 0.05,
+      blinkRight: t >= 700 && t < 800 ? 0.2 : t >= 400 && t < 1700 ? 0.9 : 0.05,
+    }));
+    expect(types(ev)).toEqual(['eyes_closed_long']);
+  });
+
+  it('a gap in the frame stream (camera stall) restarts the timer', () => {
+    const det = new GestureDetector();
+    const ev: GestureEvent[] = [];
+    const f = (t: number) => ev.push(...det.update(mkFrame(t, { blinkLeft: 0.9, blinkRight: 0.9 })));
+    f(400); f(433); f(466);
+    f(1300); // 830 ms later: unknown what happened in between
+    f(1333);
+    expect(ev).toEqual([]);
+  });
+
+  it('a long close does not fire from a wink that the other eye joins late, and a wink afterwards still works', () => {
+    const ev = run(new GestureDetector(), 4000, (t) => ({ blinkLeft: t >= 400 && t < 1700 ? 0.9 : t >= 2500 && t < 2800 ? 0.9 : 0.05, blinkRight: t >= 1500 && t < 1700 ? 0.9 : 0.05 }));
+    expect(types(ev)).toEqual(['wink_left']);
+  });
+
+  it('calibrator: both-eyes-closed training is judged against the closed threshold', () => {
+    const c = new GestureCalibrator();
+    for (let i = 0; i < 60; i++) c.addNeutral(mkFrame(i * 33, { blinkLeft: 0.05, blinkRight: 0.06 }));
+    for (let i = 0; i < 60; i++) c.addGesture('eyesClosed', mkFrame(i * 33, { blinkLeft: 0.9, blinkRight: 0.85 }));
+    expect(c.result().works.eyesClosed).toBe(true);
+    const weak = new GestureCalibrator();
+    for (let i = 0; i < 60; i++) weak.addNeutral(mkFrame(i * 33, { blinkLeft: 0.05, blinkRight: 0.06 }));
+    for (let i = 0; i < 60; i++) weak.addGesture('eyesClosed', mkFrame(i * 33, { blinkLeft: 0.9, blinkRight: 0.2 }));
+    expect(weak.result().works.eyesClosed).toBe(false);
+  });
+
+  it('old saved thresholds without eyesClosedLongMs get the default', () => {
+    const { eyesClosedLongMs: _drop, ...old } = { ...DEFAULT_THRESHOLDS };
+    void _drop;
+    expect(types(run(new GestureDetector(old), 3000, both(400, 2200)))).toEqual(['eyes_closed_long']);
+  });
+});
+
 describe('mouth', () => {
   it('opens at mouthOpen, stays open through the hysteresis band, closes at mouthClose', () => {
     const det = new GestureDetector({ mouthOpen: 0.5, mouthClose: 0.25 });
@@ -144,7 +231,8 @@ describe('GestureCalibrator', () => {
     feed(c, 'mouthOpen', { jawOpen: 0.7 });
     feed(c, 'browsUp', { browUp: 0.7 });
     const { thresholds: T, works } = c.result();
-    expect(works).toEqual({ winkLeft: true, winkRight: true, mouthOpen: true, browsUp: true });
+    // eyesClosed was not trained in this test: reported false (intended: the new gesture adds a works key)
+    expect(works).toEqual({ winkLeft: true, winkRight: true, mouthOpen: true, browsUp: true, eyesClosed: false });
     expect(T.blinkClosed).toBeGreaterThan(0.3);
     expect(T.blinkClosed).toBeLessThan(0.8);
     expect(T.blinkOpen).toBeLessThan(T.blinkClosed);

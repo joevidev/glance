@@ -69,12 +69,36 @@ type P = { x: number; y: number };
 
 const IDX = {
   irisA: 468, irisB: 473,
+  ringA: [469, 470, 471, 472], ringB: [474, 475, 476, 477],
   cornerA1: 33, cornerA2: 133, cornerB1: 362, cornerB2: 263,
   upperA: 159, lowerA: 145, upperB: 386, lowerB: 374,
   noseTip: 1, chin: 152,
 };
 
-function eyeMetrics(pt: (i: number) => P, iris: number, c1: number, c2: number, up: number, lo: number): EyeMetrics | null {
+/**
+ * Iris center from the center landmark plus the 4 ring landmarks (independent estimates of the same point, so the average has
+ * less noise). x uses all five points. y uses the center and the two ring points nearest the horizontal midline only: the top and
+ * bottom ring points are partly hidden by the lids, and averaging them would drag the estimate down when the eye is half closed.
+ * Falls back to the center alone when the ring is missing or implausible (any ring point farther than 0.35 eye widths).
+ */
+function irisCenter(pt: (i: number) => P, iris: number, ring: number[], ux: number, uy: number, w: number): P {
+  const c = pt(iris);
+  const pts: { du: number; dv: number; p: P }[] = [];
+  for (const r of ring) {
+    const p = pt(r);
+    const dx = p.x - c.x;
+    const dy = p.y - c.y;
+    if (Math.hypot(dx, dy) > 0.35 * w) return c;
+    pts.push({ du: dx * ux + dy * uy, dv: -dx * uy + dy * ux, p });
+  }
+  if (pts.length < 4) return c;
+  const side = [...pts].sort((a, b) => Math.abs(a.dv) - Math.abs(b.dv)).slice(0, 2);
+  const x = (c.x + pts.reduce((a, q) => a + q.p.x, 0)) / 5;
+  const y = (c.y + side.reduce((a, q) => a + q.p.y, 0)) / 3;
+  return { x, y };
+}
+
+function eyeMetrics(pt: (i: number) => P, iris: number, ring: number[] | null, c1: number, c2: number, up: number, lo: number): EyeMetrics | null {
   const a = pt(c1);
   const b = pt(c2);
   const ex = b.x - a.x;
@@ -85,7 +109,7 @@ function eyeMetrics(pt: (i: number) => P, iris: number, c1: number, c2: number, 
   const uy = ey / w;
   const vx = -uy; // perpendicular, image-down positive when u points image-right
   const vy = ux;
-  const ir = pt(iris);
+  const ir = ring ? irisCenter(pt, iris, ring, ux, uy, w) : pt(iris);
   const mx = (a.x + b.x) / 2;
   const my = (a.y + b.y) / 2;
   const u = pt(up);
@@ -142,7 +166,7 @@ function headPoseFromLandmarks(pt: (i: number) => P): { yaw: number; pitch: numb
  * Turn a FaceLandmarker result into a GazeFrame. Returns null when there is no face or the mesh has
  * no iris landmarks (needs 478 points). `aspect` = video width / height (default 16/9).
  */
-export function frameFromResult(r: LandmarkerResultLike, tsMs: number, opts?: { aspect?: number }): GazeFrame | null {
+export function frameFromResult(r: LandmarkerResultLike, tsMs: number, opts?: { aspect?: number; irisRing?: boolean }): GazeFrame | null {
   const lm: LM[] | undefined = r.faceLandmarks?.[0];
   if (!lm || lm.length < 478) return null;
   const aspect = opts?.aspect && opts.aspect > 0 ? opts.aspect : 16 / 9;
@@ -150,8 +174,9 @@ export function frameFromResult(r: LandmarkerResultLike, tsMs: number, opts?: { 
     const l = lm[i]!;
     return { x: l.x * aspect, y: l.y };
   };
-  const eyeA = eyeMetrics(pt, IDX.irisA, IDX.cornerA1, IDX.cornerA2, IDX.upperA, IDX.lowerA);
-  const eyeB = eyeMetrics(pt, IDX.irisB, IDX.cornerB1, IDX.cornerB2, IDX.upperB, IDX.lowerB);
+  const useRing = opts?.irisRing !== false;
+  const eyeA = eyeMetrics(pt, IDX.irisA, useRing ? IDX.ringA : null, IDX.cornerA1, IDX.cornerA2, IDX.upperA, IDX.lowerA);
+  const eyeB = eyeMetrics(pt, IDX.irisB, useRing ? IDX.ringB : null, IDX.cornerB1, IDX.cornerB2, IDX.upperB, IDX.lowerB);
   if (!eyeA || !eyeB) return null;
 
   const bs = new Map<string, number>();
@@ -183,4 +208,45 @@ export function frameFromResult(r: LandmarkerResultLike, tsMs: number, opts?: { 
     head,
     faceBox,
   };
+}
+
+/**
+ * Short temporal median on the iris offset features (default: 0 gx, 1 gy, 2 gly, 10..13 per-eye iris offsets), window 3 frames.
+ * Removes single-frame spikes (a mis-detected iris) at the cost of about one frame of lag on a step. Head and openness features
+ * pass through untouched (openness must stay sharp so a blink is seen). Feed it every frame in order; a gap longer than `gapMs`
+ * or a null frame (no face) restarts it. Use the same smoother for calibration and live frames.
+ */
+export class FeatureSmoother {
+  private readonly win: number;
+  private readonly idx: number[];
+  private readonly gapMs: number;
+  private hist: { ts: number; f: number[] }[] = [];
+
+  constructor(opts?: { window?: number; indices?: number[]; gapMs?: number }) {
+    this.win = Math.max(1, opts?.window ?? 3);
+    this.idx = opts?.indices ?? [0, 1, 2, 10, 11, 12, 13];
+    this.gapMs = opts?.gapMs ?? 300;
+  }
+
+  reset(): void {
+    this.hist = [];
+  }
+
+  smooth(frame: GazeFrame | null): GazeFrame | null {
+    if (!frame) {
+      this.hist = [];
+      return frame;
+    }
+    const last = this.hist[this.hist.length - 1];
+    if (last && frame.tsMs - last.ts > this.gapMs) this.hist = [];
+    this.hist.push({ ts: frame.tsMs, f: frame.features });
+    while (this.hist.length > this.win) this.hist.shift();
+    if (this.hist.length < 3) return frame;
+    const f = frame.features.slice();
+    for (const i of this.idx) {
+      const v = this.hist.map((h) => h.f[i]!).sort((a, b) => a - b);
+      f[i] = v[v.length >> 1]!;
+    }
+    return { ...frame, features: f };
+  }
 }

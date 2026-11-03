@@ -1,0 +1,11 @@
+manifest locked, test sha ok, n_test=360
+360 cases from /Users/dianamunozlar/Workspace/jctimana/buivo/hackathons/fireworks-nov02/glance/data/dataset/test.jsonl; writing rows to /Users/dianamunozlar/Workspace/jctimana/buivo/hackathons/fireworks-nov02/glance/results/rows
+[open_base_flash] 50/360 done, correct so far 26, errors 0
+[open_base_flash] 100/360 done, correct so far 54, errors 0
+[open_base_flash] 150/360 done, correct so far 85, errors 0
+[open_base_flash] 200/360 done, correct so far 114, errors 0
+[open_base_flash] 250/360 done, correct so far 145, errors 0
+[open_base_flash] 300/360 done, correct so far 178, errors 0
+[open_base_flash] 350/360 done, correct so far 206, errors 0
+[open_base_flash] 360/360 done, correct so far 212, errors 0
+open_base: n=360 acc=58.9% parse_fail_or_none=12 api_errors=0 truncated_length=12 rows_that_needed_retries=0 total_cost_usd=0.2354045

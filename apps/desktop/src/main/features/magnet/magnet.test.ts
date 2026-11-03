@@ -35,15 +35,25 @@ describe('magnet: snapping', () => {
     expect(near(r.out, { x: 550, y: 420 })).toBe(true)
   })
 
-  it('does not snap while saccading (fast gaze)', () => {
+  it('does not snap while saccading (fast gaze): output equals raw on every frame', () => {
     const c = new MagnetCore()
-    let out = { x: 0, y: 0 }
     for (let i = 0; i < 60; i++) {
-      out = c.adjust({ x: 100 + i * 40, y: 380 }, 1000 + i * 33, ctx) // ~1200 px/s, passing right over the button
+      const raw = { x: 100 + i * 40, y: 380 } // ~1200 px/s, passing right over the button
+      const out = c.adjust(raw, 1000 + i * 33, ctx)
       if (c.wantsRefresh(1000 + i * 33)) c.setElements([btn], 1000 + i * 33)
+      expect(out).toEqual(raw)
     }
     expect(c.snappedElement).toBeNull()
-    expect(out.y).toBeGreaterThan(300) // raw passes through
+  })
+
+  it('no extra lag: gaze moving past an element (not still, not a saccade) is returned exactly', () => {
+    const c = new MagnetCore()
+    c.setElements([btn], 1000)
+    for (let i = 0; i < 90; i++) {
+      const raw = { x: 300 + i * 12, y: 400 + Math.sin(i) * 5 } // ~360 px/s: above fixSpeed, below saccadeSpeed
+      expect(c.adjust(raw, 1000 + i * 33, ctx)).toEqual(raw)
+    }
+    expect(c.snappedElement).toBeNull()
   })
 
   it('does not snap before the fixation time', () => {
@@ -144,16 +154,30 @@ describe('magnet: easing, geometry, switches', () => {
     expect(snapPoint({ x: 0, y: 0 }, { x: 500, y: 400, w: 4, h: 4 })).toEqual({ x: 502, y: 402 }) // tiny: center
   })
 
-  it('a release glides back to the gaze, it does not jump', () => {
+  it('a slow release glides back to the gaze, it does not jump', () => {
     const c = new MagnetCore()
-    let { t } = hold(c, { x: 470, y: 380 }, 1000, 1200, [btn])
-    const raw = { x: 100, y: 100 } // far away: unsnaps; speed spike also releases
-    const o = c.adjust(raw, t + 33, ctx)
+    let { t } = hold(c, { x: 470, y: 400 }, 1000, 1200, [btn])
+    expect(c.snappedElement?.id).toBe(1)
+    let glided = false
+    let raw = { x: 470, y: 400 }
+    for (let i = 0; i < 40; i++, t += 33) {
+      raw = { x: 470 - i * 5, y: 420 } // ~150 px/s, no saccade
+      const out = c.adjust(raw, t, ctx)
+      if (!c.snappedElement && !glided) {
+        glided = true
+        expect(Math.hypot(out.x - raw.x, out.y - raw.y)).toBeGreaterThan(20) // still gliding, not a jump to the gaze
+      }
+    }
+    expect(glided).toBe(true)
+    expect(near(hold(c, raw, t, 500, [btn]).out, raw)).toBe(true)
+  })
+
+  it('a release by saccade follows the gaze at once (no glide)', () => {
+    const c = new MagnetCore()
+    const { t } = hold(c, { x: 470, y: 380 }, 1000, 1200, [btn])
+    const raw = { x: 100, y: 100 }
+    expect(c.adjust(raw, t + 33, ctx)).toEqual(raw)
     expect(c.snappedElement).toBeNull()
-    expect(Math.hypot(o.x - raw.x, o.y - raw.y)).toBeGreaterThan(5) // still gliding
-    t += 33
-    const r = hold(c, raw, t, 800, [btn])
-    expect(near(r.out, raw)).toBe(true)
   })
 })
 

@@ -27,16 +27,25 @@ SEED = 20261102
 # summary key -> row system name
 CORE = {"raw": "raw_gaze", "nearest": "nearest", "open_base": "open_base", "frontier": "frontier", "lora": "lora"}
 EXTRA = {"open_cmd_only": "open_cmd_only", "harness_top5": "harness_top5", "harness_vote": "harness_vote",
-         "open_base_geo": "open_base_geo", "frontier_geo": "frontier_geo", "open_base_flash": "open_base_flash"}
+         "open_base_geo": "open_base_geo", "frontier_geo": "frontier_geo", "open_base_flash": "open_base_flash",
+         # added 15:3x PT with the OpenAI key only (Fireworks was suspended): a repeat of the frontier run (run-to-run noise floor,
+         # because the API forces temperature 1) and three more OpenAI models on the same locked cases and the same prompt
+         "frontier_rerun": "frontier_rerun", "frontier_sol": "frontier_sol", "frontier_g54": "frontier_g54",
+         "frontier_g54mini": "frontier_g54mini"}
 LABELS = {"raw": "raw gaze", "nearest": "nearest to gaze", "open_base": "open model (gaze+command)",
           "frontier": "frontier", "lora": "open model + LoRA", "open_cmd_only": "open model (command only)",
           "harness_top5": "harness: top-5 nearest", "harness_vote": "harness: 5-vote",
           "open_base_geo": "open model + geo prompt", "frontier_geo": "frontier + geo prompt",
-          "open_base_flash": "open model flash base (extra, not compared)"}
+          "open_base_flash": "open model flash base (extra, not compared)",
+          "frontier_rerun": "gpt-6-astra, second run (noise floor)", "frontier_sol": "gpt-6.1-sol",
+          "frontier_g54": "gpt-5.4", "frontier_g54mini": "gpt-5.4-mini"}
 PAIRS = [("lora", "open_base"), ("lora", "frontier"), ("lora", "nearest"), ("open_base", "nearest"),
          ("open_base", "open_cmd_only"), ("frontier", "nearest"),
          ("open_base_geo", "open_base"), ("frontier_geo", "frontier"), ("open_base_geo", "nearest"),
-         ("open_base_flash", "frontier"), ("open_base", "frontier"), ("lora", "open_base_flash")]
+         ("open_base_flash", "frontier"), ("open_base", "frontier"), ("lora", "open_base_flash"),
+         ("frontier_rerun", "frontier"), ("frontier_sol", "frontier"), ("frontier_g54", "frontier"),
+         ("frontier_g54mini", "frontier"), ("open_base_flash", "frontier_g54mini"), ("open_base_flash", "frontier_sol"),
+         ("lora", "frontier_g54mini")]
 
 
 # ---------------------------------------------------------------- tests

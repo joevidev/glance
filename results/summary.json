@@ -1,0 +1,1024 @@
+{
+  "frontier_name": "gpt-6-astra",
+  "n_test": 360,
+  "n_sites": 8,
+  "acc": {
+    "raw": 8.33,
+    "nearest": 26.67,
+    "open_base": 56.39,
+    "frontier": 57.22,
+    "lora": 52.78
+  },
+  "acc_ci95_site_bootstrap": {
+    "raw": [
+      3.89,
+      13.06
+    ],
+    "nearest": [
+      19.72,
+      33.62
+    ],
+    "open_base": [
+      51.67,
+      61.94
+    ],
+    "frontier": [
+      52.78,
+      61.94
+    ],
+    "lora": [
+      47.78,
+      58.06
+    ],
+    "open_cmd_only": [
+      41.11,
+      50.56
+    ],
+    "harness_top5": [
+      29.44,
+      50.83
+    ],
+    "frontier_geo": [
+      49.72,
+      58.89
+    ],
+    "open_base_flash": [
+      54.44,
+      64.44
+    ],
+    "frontier_rerun": [
+      52.22,
+      61.95
+    ],
+    "frontier_sol": [
+      52.78,
+      62.22
+    ],
+    "frontier_g54": [
+      46.94,
+      56.11
+    ],
+    "frontier_g54mini": [
+      38.06,
+      47.5
+    ]
+  },
+  "cost_per_1k": {
+    "raw": 0.0,
+    "nearest": 0.0,
+    "open_base": 7.756,
+    "frontier": 12.1981,
+    "lora": 5.7856,
+    "open_cmd_only": 5.6226,
+    "harness_top5": 6.2833,
+    "harness_vote": null,
+    "open_base_geo": null,
+    "frontier_geo": 13.7872,
+    "open_base_flash": 0.6539,
+    "frontier_rerun": 12.2662,
+    "frontier_sol": 2.4718,
+    "frontier_g54": 2.8825,
+    "frontier_g54mini": 0.8786
+  },
+  "latency_p50_ms": {
+    "raw": 0.0,
+    "nearest": 0.0,
+    "open_base": 4371.2,
+    "frontier": 1562.7,
+    "lora": 1572.0,
+    "open_cmd_only": 3002.8,
+    "harness_top5": 4598.3,
+    "harness_vote": null,
+    "open_base_geo": null,
+    "frontier_geo": 1546.5,
+    "open_base_flash": 2764.6,
+    "frontier_rerun": 1582.6,
+    "frontier_sol": 1369.1,
+    "frontier_g54": 749.5,
+    "frontier_g54mini": 608.1
+  },
+  "latency_p95_ms": {
+    "raw": 0.0,
+    "nearest": 0.0,
+    "open_base": 74972.1,
+    "frontier": 3784.3,
+    "lora": 2184.1,
+    "open_cmd_only": 56668.9,
+    "harness_top5": 80791.9,
+    "harness_vote": null,
+    "open_base_geo": null,
+    "frontier_geo": 3922.8,
+    "open_base_flash": 34880.4,
+    "frontier_rerun": 4177.7,
+    "frontier_sol": 3824.6,
+    "frontier_g54": 1214.7,
+    "frontier_g54mini": 898.3
+  },
+  "latency_note": "LLM latency is wall time of one API call (successful attempt, excluding retry backoff and queueing) measured with up to 16 requests in flight; harness_vote is the slowest of its 5 parallel calls. The open model is a thinking-only model, so its latency includes the reasoning trace. Geometry baselines are computed locally (reported as 0 ms). The LoRA latency, when present, was sampled inside a training session and is NOT serving latency.",
+  "systems": {
+    "frontier": {
+      "n": 360,
+      "complete": true,
+      "acc": 57.22,
+      "cost_per_1k": 12.1981,
+      "latency_p50_ms": 1562.7,
+      "latency_p95_ms": 3784.3,
+      "n_pred_none": 0,
+      "n_truncated_length": 0,
+      "n_pred_wrong_id": 154,
+      "n_rows_retried": 0,
+      "n_api_error": 0
+    },
+    "frontier_g54": {
+      "n": 360,
+      "complete": true,
+      "acc": 51.67,
+      "cost_per_1k": 2.8825,
+      "latency_p50_ms": 749.5,
+      "latency_p95_ms": 1214.7,
+      "n_pred_none": 0,
+      "n_truncated_length": 0,
+      "n_pred_wrong_id": 174,
+      "n_rows_retried": 0,
+      "n_api_error": 0
+    },
+    "frontier_g54mini": {
+      "n": 360,
+      "complete": true,
+      "acc": 42.78,
+      "cost_per_1k": 0.8786,
+      "latency_p50_ms": 608.1,
+      "latency_p95_ms": 898.3,
+      "n_pred_none": 0,
+      "n_truncated_length": 0,
+      "n_pred_wrong_id": 206,
+      "n_rows_retried": 0,
+      "n_api_error": 0
+    },
+    "frontier_geo": {
+      "n": 360,
+      "complete": true,
+      "acc": 54.44,
+      "cost_per_1k": 13.7872,
+      "latency_p50_ms": 1546.5,
+      "latency_p95_ms": 3922.8,
+      "n_pred_none": 0,
+      "n_truncated_length": 0,
+      "n_pred_wrong_id": 164,
+      "n_rows_retried": 0,
+      "n_api_error": 0
+    },
+    "frontier_rerun": {
+      "n": 360,
+      "complete": true,
+      "acc": 56.94,
+      "cost_per_1k": 12.2662,
+      "latency_p50_ms": 1582.6,
+      "latency_p95_ms": 4177.7,
+      "n_pred_none": 0,
+      "n_truncated_length": 0,
+      "n_pred_wrong_id": 155,
+      "n_rows_retried": 0,
+      "n_api_error": 0
+    },
+    "frontier_sol": {
+      "n": 360,
+      "complete": true,
+      "acc": 57.22,
+      "cost_per_1k": 2.4718,
+      "latency_p50_ms": 1369.1,
+      "latency_p95_ms": 3824.6,
+      "n_pred_none": 0,
+      "n_truncated_length": 0,
+      "n_pred_wrong_id": 154,
+      "n_rows_retried": 0,
+      "n_api_error": 0
+    },
+    "harness_top5": {
+      "n": 360,
+      "complete": true,
+      "acc": 39.72,
+      "cost_per_1k": 6.2833,
+      "latency_p50_ms": 4598.3,
+      "latency_p95_ms": 80791.9,
+      "n_pred_none": 27,
+      "n_truncated_length": 27,
+      "n_pred_wrong_id": 190,
+      "n_rows_retried": 0,
+      "n_api_error": 0
+    },
+    "lora": {
+      "n": 360,
+      "complete": true,
+      "acc": 52.78,
+      "cost_per_1k": 5.7856,
+      "latency_p50_ms": 1572.0,
+      "latency_p95_ms": 2184.1,
+      "n_pred_none": 0,
+      "n_truncated_length": 0,
+      "n_pred_wrong_id": 170,
+      "n_rows_retried": 0,
+      "n_api_error": 0
+    },
+    "nearest": {
+      "n": 360,
+      "complete": true,
+      "acc": 26.67,
+      "cost_per_1k": 0.0,
+      "latency_p50_ms": 0.0,
+      "latency_p95_ms": 0.0,
+      "n_pred_none": 0,
+      "n_truncated_length": 0,
+      "n_pred_wrong_id": 264,
+      "n_rows_retried": 0,
+      "n_api_error": 0
+    },
+    "open_base": {
+      "n": 360,
+      "complete": true,
+      "acc": 56.39,
+      "cost_per_1k": 7.756,
+      "latency_p50_ms": 4371.2,
+      "latency_p95_ms": 74972.1,
+      "n_pred_none": 26,
+      "n_truncated_length": 26,
+      "n_pred_wrong_id": 131,
+      "n_rows_retried": 0,
+      "n_api_error": 0
+    },
+    "open_base_flash": {
+      "n": 360,
+      "complete": true,
+      "acc": 58.89,
+      "cost_per_1k": 0.6539,
+      "latency_p50_ms": 2764.6,
+      "latency_p95_ms": 34880.4,
+      "n_pred_none": 12,
+      "n_truncated_length": 12,
+      "n_pred_wrong_id": 136,
+      "n_rows_retried": 0,
+      "n_api_error": 0
+    },
+    "open_cmd_only": {
+      "n": 360,
+      "complete": true,
+      "acc": 45.83,
+      "cost_per_1k": 5.6226,
+      "latency_p50_ms": 3002.8,
+      "latency_p95_ms": 56668.9,
+      "n_pred_none": 9,
+      "n_truncated_length": 9,
+      "n_pred_wrong_id": 186,
+      "n_rows_retried": 0,
+      "n_api_error": 0
+    },
+    "raw_gaze": {
+      "n": 360,
+      "complete": true,
+      "acc": 8.33,
+      "cost_per_1k": 0.0,
+      "latency_p50_ms": 0.0,
+      "latency_p95_ms": 0.0,
+      "n_pred_none": 229,
+      "n_truncated_length": 0,
+      "n_pred_wrong_id": 101,
+      "n_rows_retried": 0,
+      "n_api_error": 0
+    }
+  },
+  "not_run": [
+    "harness_vote",
+    "open_base_geo"
+  ],
+  "pairs": {
+    "lora_vs_open_base": {
+      "a": "lora",
+      "b": "open_base",
+      "n": 360,
+      "n_sites": 8,
+      "n_only_a": 22,
+      "n_only_b": 35,
+      "acc_a": 52.78,
+      "acc_b": 56.39,
+      "mcnemar_p": 0.11116111910399346,
+      "boot_diff_pts": -3.611,
+      "boot_ci95": [
+        -6.667,
+        -0.556
+      ],
+      "verdict": "tests disagree: not called real"
+    },
+    "lora_vs_frontier": {
+      "a": "lora",
+      "b": "frontier",
+      "n": 360,
+      "n_sites": 8,
+      "n_only_a": 23,
+      "n_only_b": 39,
+      "acc_a": 52.78,
+      "acc_b": 57.22,
+      "mcnemar_p": 0.05589722669971112,
+      "boot_diff_pts": -4.444,
+      "boot_ci95": [
+        -8.333,
+        -1.111
+      ],
+      "verdict": "tests disagree: not called real"
+    },
+    "lora_vs_nearest": {
+      "a": "lora",
+      "b": "nearest",
+      "n": 360,
+      "n_sites": 8,
+      "n_only_a": 118,
+      "n_only_b": 24,
+      "acc_a": 52.78,
+      "acc_b": 26.67,
+      "mcnemar_p": 4.154432818198807e-16,
+      "boot_diff_pts": 26.111,
+      "boot_ci95": [
+        20.556,
+        31.667
+      ],
+      "verdict": "lora better (real: McNemar and cluster bootstrap agree)"
+    },
+    "open_base_vs_nearest": {
+      "a": "open_base",
+      "b": "nearest",
+      "n": 360,
+      "n_sites": 8,
+      "n_only_a": 109,
+      "n_only_b": 2,
+      "acc_a": 56.39,
+      "acc_b": 26.67,
+      "mcnemar_p": 4.789402585702178e-30,
+      "boot_diff_pts": 29.722,
+      "boot_ci95": [
+        24.167,
+        35.278
+      ],
+      "verdict": "open_base better (real: McNemar and cluster bootstrap agree)"
+    },
+    "open_base_vs_open_cmd_only": {
+      "a": "open_base",
+      "b": "open_cmd_only",
+      "n": 360,
+      "n_sites": 8,
+      "n_only_a": 58,
+      "n_only_b": 20,
+      "acc_a": 56.39,
+      "acc_b": 45.83,
+      "mcnemar_p": 1.9519090743641074e-05,
+      "boot_diff_pts": 10.556,
+      "boot_ci95": [
+        4.722,
+        16.389
+      ],
+      "verdict": "open_base better (real: McNemar and cluster bootstrap agree)"
+    },
+    "frontier_vs_nearest": {
+      "a": "frontier",
+      "b": "nearest",
+      "n": 360,
+      "n_sites": 8,
+      "n_only_a": 112,
+      "n_only_b": 2,
+      "acc_a": 57.22,
+      "acc_b": 26.67,
+      "mcnemar_p": 6.313198357701359e-31,
+      "boot_diff_pts": 30.556,
+      "boot_ci95": [
+        24.993,
+        36.111
+      ],
+      "verdict": "frontier better (real: McNemar and cluster bootstrap agree)"
+    },
+    "frontier_geo_vs_frontier": {
+      "a": "frontier_geo",
+      "b": "frontier",
+      "n": 360,
+      "n_sites": 8,
+      "n_only_a": 2,
+      "n_only_b": 12,
+      "acc_a": 54.44,
+      "acc_b": 57.22,
+      "mcnemar_p": 0.012939453125,
+      "boot_diff_pts": -2.778,
+      "boot_ci95": [
+        -4.167,
+        -0.833
+      ],
+      "verdict": "frontier better (real: McNemar and cluster bootstrap agree)"
+    },
+    "open_base_flash_vs_frontier": {
+      "a": "open_base_flash",
+      "b": "frontier",
+      "n": 360,
+      "n_sites": 8,
+      "n_only_a": 11,
+      "n_only_b": 5,
+      "acc_a": 58.89,
+      "acc_b": 57.22,
+      "mcnemar_p": 0.210113525390625,
+      "boot_diff_pts": 1.667,
+      "boot_ci95": [
+        -0.833,
+        4.444
+      ],
+      "verdict": "no reliable difference"
+    },
+    "open_base_vs_frontier": {
+      "a": "open_base",
+      "b": "frontier",
+      "n": 360,
+      "n_sites": 8,
+      "n_only_a": 3,
+      "n_only_b": 6,
+      "acc_a": 56.39,
+      "acc_b": 57.22,
+      "mcnemar_p": 0.5078125,
+      "boot_diff_pts": -0.833,
+      "boot_ci95": [
+        -2.222,
+        0.278
+      ],
+      "verdict": "no reliable difference"
+    },
+    "lora_vs_open_base_flash": {
+      "a": "lora",
+      "b": "open_base_flash",
+      "n": 360,
+      "n_sites": 8,
+      "n_only_a": 18,
+      "n_only_b": 40,
+      "acc_a": 52.78,
+      "acc_b": 58.89,
+      "mcnemar_p": 0.005354859650800294,
+      "boot_diff_pts": -6.111,
+      "boot_ci95": [
+        -8.611,
+        -4.167
+      ],
+      "verdict": "open_base_flash better (real: McNemar and cluster bootstrap agree)"
+    },
+    "frontier_rerun_vs_frontier": {
+      "a": "frontier_rerun",
+      "b": "frontier",
+      "n": 360,
+      "n_sites": 8,
+      "n_only_a": 2,
+      "n_only_b": 3,
+      "acc_a": 56.94,
+      "acc_b": 57.22,
+      "mcnemar_p": 1.0,
+      "boot_diff_pts": -0.278,
+      "boot_ci95": [
+        -1.944,
+        1.389
+      ],
+      "verdict": "no reliable difference"
+    },
+    "frontier_sol_vs_frontier": {
+      "a": "frontier_sol",
+      "b": "frontier",
+      "n": 360,
+      "n_sites": 8,
+      "n_only_a": 3,
+      "n_only_b": 3,
+      "acc_a": 57.22,
+      "acc_b": 57.22,
+      "mcnemar_p": 1.0,
+      "boot_diff_pts": 0.0,
+      "boot_ci95": [
+        -1.389,
+        1.667
+      ],
+      "verdict": "no reliable difference"
+    },
+    "frontier_g54_vs_frontier": {
+      "a": "frontier_g54",
+      "b": "frontier",
+      "n": 360,
+      "n_sites": 8,
+      "n_only_a": 13,
+      "n_only_b": 33,
+      "acc_a": 51.67,
+      "acc_b": 57.22,
+      "mcnemar_p": 0.004533861582189047,
+      "boot_diff_pts": -5.556,
+      "boot_ci95": [
+        -9.444,
+        -1.944
+      ],
+      "verdict": "frontier better (real: McNemar and cluster bootstrap agree)"
+    },
+    "frontier_g54mini_vs_frontier": {
+      "a": "frontier_g54mini",
+      "b": "frontier",
+      "n": 360,
+      "n_sites": 8,
+      "n_only_a": 12,
+      "n_only_b": 64,
+      "acc_a": 42.78,
+      "acc_b": 57.22,
+      "mcnemar_p": 1.0023457813247953e-09,
+      "boot_diff_pts": -14.444,
+      "boot_ci95": [
+        -18.056,
+        -10.556
+      ],
+      "verdict": "frontier better (real: McNemar and cluster bootstrap agree)"
+    },
+    "open_base_flash_vs_frontier_g54mini": {
+      "a": "open_base_flash",
+      "b": "frontier_g54mini",
+      "n": 360,
+      "n_sites": 8,
+      "n_only_a": 69,
+      "n_only_b": 11,
+      "acc_a": 58.89,
+      "acc_b": 42.78,
+      "mcnemar_p": 2.0495153187175896e-11,
+      "boot_diff_pts": 16.111,
+      "boot_ci95": [
+        11.389,
+        21.667
+      ],
+      "verdict": "open_base_flash better (real: McNemar and cluster bootstrap agree)"
+    },
+    "open_base_flash_vs_frontier_sol": {
+      "a": "open_base_flash",
+      "b": "frontier_sol",
+      "n": 360,
+      "n_sites": 8,
+      "n_only_a": 10,
+      "n_only_b": 4,
+      "acc_a": 58.89,
+      "acc_b": 57.22,
+      "mcnemar_p": 0.1795654296875,
+      "boot_diff_pts": 1.667,
+      "boot_ci95": [
+        -0.556,
+        4.444
+      ],
+      "verdict": "no reliable difference"
+    },
+    "lora_vs_frontier_g54mini": {
+      "a": "lora",
+      "b": "frontier_g54mini",
+      "n": 360,
+      "n_sites": 8,
+      "n_only_a": 59,
+      "n_only_b": 23,
+      "acc_a": 52.78,
+      "acc_b": 42.78,
+      "mcnemar_p": 8.715478657320524e-05,
+      "boot_diff_pts": 10.0,
+      "boot_ci95": [
+        5.556,
+        14.722
+      ],
+      "verdict": "lora better (real: McNemar and cluster bootstrap agree)"
+    }
+  },
+  "by_sigma": {
+    "60": {
+      "frontier": {
+        "acc": 59.84,
+        "n": 122
+      },
+      "frontier_g54": {
+        "acc": 55.74,
+        "n": 122
+      },
+      "frontier_g54mini": {
+        "acc": 45.08,
+        "n": 122
+      },
+      "frontier_geo": {
+        "acc": 55.74,
+        "n": 122
+      },
+      "frontier_rerun": {
+        "acc": 59.02,
+        "n": 122
+      },
+      "frontier_sol": {
+        "acc": 59.84,
+        "n": 122
+      },
+      "harness_top5": {
+        "acc": 49.18,
+        "n": 122
+      },
+      "lora": {
+        "acc": 54.1,
+        "n": 122
+      },
+      "nearest": {
+        "acc": 34.43,
+        "n": 122
+      },
+      "open_base": {
+        "acc": 59.02,
+        "n": 122
+      },
+      "open_base_flash": {
+        "acc": 62.3,
+        "n": 122
+      },
+      "open_cmd_only": {
+        "acc": 42.62,
+        "n": 122
+      },
+      "raw_gaze": {
+        "acc": 11.48,
+        "n": 122
+      }
+    },
+    "120": {
+      "frontier": {
+        "acc": 61.29,
+        "n": 124
+      },
+      "frontier_g54": {
+        "acc": 54.03,
+        "n": 124
+      },
+      "frontier_g54mini": {
+        "acc": 43.55,
+        "n": 124
+      },
+      "frontier_geo": {
+        "acc": 60.48,
+        "n": 124
+      },
+      "frontier_rerun": {
+        "acc": 61.29,
+        "n": 124
+      },
+      "frontier_sol": {
+        "acc": 61.29,
+        "n": 124
+      },
+      "harness_top5": {
+        "acc": 40.32,
+        "n": 124
+      },
+      "lora": {
+        "acc": 53.23,
+        "n": 124
+      },
+      "nearest": {
+        "acc": 27.42,
+        "n": 124
+      },
+      "open_base": {
+        "acc": 60.48,
+        "n": 124
+      },
+      "open_base_flash": {
+        "acc": 62.9,
+        "n": 124
+      },
+      "open_cmd_only": {
+        "acc": 45.97,
+        "n": 124
+      },
+      "raw_gaze": {
+        "acc": 8.06,
+        "n": 124
+      }
+    },
+    "180": {
+      "frontier": {
+        "acc": 50.0,
+        "n": 114
+      },
+      "frontier_g54": {
+        "acc": 44.74,
+        "n": 114
+      },
+      "frontier_g54mini": {
+        "acc": 39.47,
+        "n": 114
+      },
+      "frontier_geo": {
+        "acc": 46.49,
+        "n": 114
+      },
+      "frontier_rerun": {
+        "acc": 50.0,
+        "n": 114
+      },
+      "frontier_sol": {
+        "acc": 50.0,
+        "n": 114
+      },
+      "harness_top5": {
+        "acc": 28.95,
+        "n": 114
+      },
+      "lora": {
+        "acc": 50.88,
+        "n": 114
+      },
+      "nearest": {
+        "acc": 17.54,
+        "n": 114
+      },
+      "open_base": {
+        "acc": 49.12,
+        "n": 114
+      },
+      "open_base_flash": {
+        "acc": 50.88,
+        "n": 114
+      },
+      "open_cmd_only": {
+        "acc": 49.12,
+        "n": 114
+      },
+      "raw_gaze": {
+        "acc": 5.26,
+        "n": 114
+      }
+    }
+  },
+  "by_command_type": {
+    "deictic": {
+      "frontier": {
+        "acc": 26.32,
+        "n": 95
+      },
+      "frontier_g54": {
+        "acc": 24.21,
+        "n": 95
+      },
+      "frontier_g54mini": {
+        "acc": 17.89,
+        "n": 95
+      },
+      "frontier_geo": {
+        "acc": 24.21,
+        "n": 95
+      },
+      "frontier_rerun": {
+        "acc": 24.21,
+        "n": 95
+      },
+      "frontier_sol": {
+        "acc": 24.21,
+        "n": 95
+      },
+      "harness_top5": {
+        "acc": 25.26,
+        "n": 95
+      },
+      "lora": {
+        "acc": 17.89,
+        "n": 95
+      },
+      "nearest": {
+        "acc": 24.21,
+        "n": 95
+      },
+      "open_base": {
+        "acc": 23.16,
+        "n": 95
+      },
+      "open_base_flash": {
+        "acc": 24.21,
+        "n": 95
+      },
+      "open_cmd_only": {
+        "acc": 1.05,
+        "n": 95
+      },
+      "raw_gaze": {
+        "acc": 8.42,
+        "n": 95
+      }
+    },
+    "ordinal": {
+      "frontier": {
+        "acc": 80.3,
+        "n": 66
+      },
+      "frontier_g54": {
+        "acc": 66.67,
+        "n": 66
+      },
+      "frontier_g54mini": {
+        "acc": 48.48,
+        "n": 66
+      },
+      "frontier_geo": {
+        "acc": 66.67,
+        "n": 66
+      },
+      "frontier_rerun": {
+        "acc": 80.3,
+        "n": 66
+      },
+      "frontier_sol": {
+        "acc": 83.33,
+        "n": 66
+      },
+      "harness_top5": {
+        "acc": 40.91,
+        "n": 66
+      },
+      "lora": {
+        "acc": 71.21,
+        "n": 66
+      },
+      "nearest": {
+        "acc": 30.3,
+        "n": 66
+      },
+      "open_base": {
+        "acc": 78.79,
+        "n": 66
+      },
+      "open_base_flash": {
+        "acc": 92.42,
+        "n": 66
+      },
+      "open_cmd_only": {
+        "acc": 100.0,
+        "n": 66
+      },
+      "raw_gaze": {
+        "acc": 6.06,
+        "n": 66
+      }
+    },
+    "partial_name": {
+      "frontier": {
+        "acc": 93.2,
+        "n": 103
+      },
+      "frontier_g54": {
+        "acc": 89.32,
+        "n": 103
+      },
+      "frontier_g54mini": {
+        "acc": 81.55,
+        "n": 103
+      },
+      "frontier_geo": {
+        "acc": 93.2,
+        "n": 103
+      },
+      "frontier_rerun": {
+        "acc": 93.2,
+        "n": 103
+      },
+      "frontier_sol": {
+        "acc": 92.23,
+        "n": 103
+      },
+      "harness_top5": {
+        "acc": 59.22,
+        "n": 103
+      },
+      "lora": {
+        "acc": 95.15,
+        "n": 103
+      },
+      "nearest": {
+        "acc": 28.16,
+        "n": 103
+      },
+      "open_base": {
+        "acc": 94.17,
+        "n": 103
+      },
+      "open_base_flash": {
+        "acc": 92.23,
+        "n": 103
+      },
+      "open_cmd_only": {
+        "acc": 89.32,
+        "n": 103
+      },
+      "raw_gaze": {
+        "acc": 7.77,
+        "n": 103
+      }
+    },
+    "role": {
+      "frontier": {
+        "acc": 33.33,
+        "n": 96
+      },
+      "frontier_g54": {
+        "acc": 28.12,
+        "n": 96
+      },
+      "frontier_g54mini": {
+        "acc": 21.88,
+        "n": 96
+      },
+      "frontier_geo": {
+        "acc": 34.38,
+        "n": 96
+      },
+      "frontier_rerun": {
+        "acc": 34.38,
+        "n": 96
+      },
+      "frontier_sol": {
+        "acc": 34.38,
+        "n": 96
+      },
+      "harness_top5": {
+        "acc": 32.29,
+        "n": 96
+      },
+      "lora": {
+        "acc": 29.17,
+        "n": 96
+      },
+      "nearest": {
+        "acc": 25.0,
+        "n": 96
+      },
+      "open_base": {
+        "acc": 33.33,
+        "n": 96
+      },
+      "open_base_flash": {
+        "acc": 34.38,
+        "n": 96
+      },
+      "open_cmd_only": {
+        "acc": 6.25,
+        "n": 96
+      },
+      "raw_gaze": {
+        "acc": 10.42,
+        "n": 96
+      }
+    }
+  },
+  "extra": {
+    "open_cmd_only": {
+      "acc": 45.83,
+      "cost_per_1k": 5.6226,
+      "latency_p50_ms": 3002.8
+    },
+    "harness_top5": {
+      "acc": 39.72,
+      "cost_per_1k": 6.2833,
+      "latency_p50_ms": 4598.3
+    },
+    "harness_vote": {
+      "acc": null,
+      "cost_per_1k": null,
+      "latency_p50_ms": null
+    },
+    "open_base_geo": {
+      "acc": null,
+      "cost_per_1k": null,
+      "latency_p50_ms": null
+    },
+    "frontier_geo": {
+      "acc": 54.44,
+      "cost_per_1k": 13.7872,
+      "latency_p50_ms": 1546.5
+    },
+    "open_base_flash": {
+      "acc": 58.89,
+      "cost_per_1k": 0.6539,
+      "latency_p50_ms": 2764.6
+    },
+    "frontier_rerun": {
+      "acc": 56.94,
+      "cost_per_1k": 12.2662,
+      "latency_p50_ms": 1582.6
+    },
+    "frontier_sol": {
+      "acc": 57.22,
+      "cost_per_1k": 2.4718,
+      "latency_p50_ms": 1369.1
+    },
+    "frontier_g54": {
+      "acc": 51.67,
+      "cost_per_1k": 2.8825,
+      "latency_p50_ms": 749.5
+    },
+    "frontier_g54mini": {
+      "acc": 42.78,
+      "cost_per_1k": 0.8786,
+      "latency_p50_ms": 608.1
+    }
+  },
+  "method": {
+    "mcnemar": "exact, scipy.stats.binomtest two-sided on discordant pairs",
+    "bootstrap": "5000 resamples of whole sites, seed 20261102, paired accuracy difference (a minus b), 95% percentile interval",
+    "real_gain_rule": "p < 0.05 AND the 95% CI excludes 0 (both must agree)"
+  },
+  "headline": "The LoRA did not beat the open base model (52.8% vs 56.4%, discordant pairs 22 vs 35, McNemar p=0.111, 95% site-bootstrap CI -6.7 to -0.6 points: tests disagree: not called real). It removed the format errors: 0 unparseable replies vs 26 for the base model. On 360 held-out test commands from 8 sites: nearest-to-gaze 26.7%, raw gaze 8.3%, open model with gaze 56.4%, gpt-6-astra 57.2%, open model + LoRA 52.8%. LoRA vs frontier: -4.4 points (95% site-bootstrap CI -8.3 to -1.1, McNemar p=0.0559, 23 vs 39 discordant), tests disagree: not called real. LoRA vs nearest: +26.1 points (95% site-bootstrap CI +20.6 to +31.7, McNemar p=4.15e-16, 118 vs 24 discordant), lora better (real: McNemar and cluster bootstrap agree). gaze+command vs command only (open model): +10.6 points (95% site-bootstrap CI +4.7 to +16.4, McNemar p=1.95e-05, 58 vs 20 discordant), open_base better (real: McNemar and cluster bootstrap agree). frontier + geo prompt vs plain prompt: -2.8 points (95% site-bootstrap CI -4.2 to -0.8, McNemar p=0.0129, 2 vs 12 discordant), frontier better (real: McNemar and cluster bootstrap agree). untrained flash base (glm-5p3-flash, NOT the LoRA's base): 58.9% at $0.65 per 1,000 commands vs gpt-6-astra 57.2% at $12.20; median latency 2.8s vs 1.6s, slower than the frontier model. open base model (glm-5p3): 56.4% at $7.76 per 1,000 commands vs gpt-6-astra 57.2% at $12.20; median latency 4.4s vs 1.6s, slower than the frontier model. LoRA (glm-5p3): 52.8% at $5.79 per 1,000 commands vs gpt-6-astra 57.2% at $12.20; median latency 1.6s vs 1.6s, about the same as the frontier model (LoRA latency was sampled inside a training session, not serving). Not run or incomplete: harness_vote, open_base_geo."
+}

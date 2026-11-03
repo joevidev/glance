@@ -1,11 +1,17 @@
 // Full-screen 9-point calibration (one white dot at a time), then the gaze fit, then gesture training.
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
-import { GazeCalibration, GestureCalibrator, calibrationPoints, type GazeFrame, type GestureName } from '@glance/gaze'
+import { GazeCalibration, GestureCalibrator, calibrationPoints, rejectOutlierFrames, type GazeFrame, type GestureName } from '@glance/gaze'
 import { engine, type SavedCalibration } from '../lib/engine'
 
-const FRAMES_PER_POINT = 25
-const SETTLE_MS = 600
+// Per dot: SETTLE_MS (the eye is still travelling, saccade latency is about 200 to 300 ms; frames are not used),
+// then COLLECT_MS of frames, kept only if at least MIN_FRAMES arrive (else collection runs on up to MAX_COLLECT_MS).
+// Outlier frames (blinks, spikes) are dropped per dot with a median-absolute-deviation test before they reach the fit.
+// 9 dots x (0.5 + 1.8) s + 1.8 s intro is about 23 s.
+const SETTLE_MS = 500
+const COLLECT_MS = 1800
+const MIN_FRAMES = 20
+const MAX_COLLECT_MS = 4000
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 export type CalibResult = { saved: SavedCalibration; fit: { ok: boolean; looErrorPx: number; trainErrorPx: number; samples: number } }
@@ -45,31 +51,35 @@ export function CalibrationRun({ screen, onDone }: { screen: { width: number; he
         await sleep(SETTLE_MS)
         setPhase('collect')
         ;(window as unknown as { __glanceTarget?: unknown }).__glanceTarget = target
-        let n = 0
-        let lastGood = performance.now()
+        const got: GazeFrame[] = []
+        const t0 = performance.now()
+        let lastGood = t0
         await new Promise<void>((resolve) => {
           const off = engine.subscribe((f: GazeFrame | null) => {
+            const el = performance.now() - t0
             if (!f) {
               if (performance.now() - lastGood > 1500) setWarn('I cannot see your face. Look at the camera light and sit back a little.')
               return
             }
-            if (calib.addSample(f, target)) {
-              lastGood = performance.now()
-              setWarn(null)
-              n++
-              setProgress(n / FRAMES_PER_POINT)
-              if (n >= FRAMES_PER_POINT) {
-                off()
-                resolve()
-              }
+            lastGood = performance.now()
+            setWarn(null)
+            got.push(f)
+            setProgress(Math.min(1, el / COLLECT_MS, got.length / MIN_FRAMES))
+            if (el >= COLLECT_MS && got.length >= MIN_FRAMES) {
+              off()
+              resolve()
             }
           })
-          // give up on a point after 12 s of nothing and go on
-          setTimeout(() => {
-            off()
-            resolve()
-          }, 12000)
+          // never wait more than MAX_COLLECT_MS (12 s if no face at all) for a point
+          const guard = setInterval(() => {
+            if (performance.now() - t0 >= (got.length ? MAX_COLLECT_MS : 12000)) {
+              clearInterval(guard)
+              off()
+              resolve()
+            }
+          }, 100)
         })
+        for (const f of rejectOutlierFrames(got)) calib.addSample(f, target)
       }
       ;(window as unknown as { __glanceTarget?: unknown }).__glanceTarget = null
       if (!alive || cancelled.current) return

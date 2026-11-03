@@ -36,10 +36,10 @@ const MODEL_URL = 'glance-asset://model/face_landmarker.task'
 /** Radius (px) inside which gaze micro-movements are ignored. Webcam gaze is 100+ px off anyway, so 30 px costs nothing. */
 const DEAD_ZONE_PX = 30
 /** An eye closing past this score freezes the cursor, and it stays frozen this long after, while the iris landmarks recover. */
-const BLINK_FREEZE = 0.25
-const BLINK_HOLD_MS = 250
-/** Eyelid openness (feature 9) falling below this fraction of its recent maximum counts as a closing eye (a look-down drops it far less). */
-const OPEN_DROP_RATIO = 0.7
+const BLINK_FREEZE_MIN = 0.45 // never below this: a relaxed or squinting eye can score 0.3 and must not freeze the cursor
+const BLINK_HOLD_MS = 200
+/** A freeze never lasts longer than this in one go, so a mis-set threshold can slow the cursor but never pin it. */
+const MAX_FREEZE_MS = 1500
 const OPEN_LOOKBACK_MS = 150
 /** Features 3..8 are head pose and face box (yaw, pitch, roll, cx, cy, size). Zeroed for calibration: with 9 dots and a still head they
  * carry only noise, standardisation gives them full weight, and the cursor then follows head movement instead of the eyes.
@@ -69,7 +69,9 @@ class Engine {
   /** Dead zone with a trailing anchor: the emitted point only moves once the gaze leaves a small radius. */
   private deadZone = new DeadZone(DEAD_ZONE_PX)
   private lastOut: { nx: number; ny: number } | null = null
-  private openHist: { ts: number; v: number }[] = []
+  /** Blink score above which the cursor freezes; taken from this user's calibrated 'eye closed' level. */
+  private blinkFreeze = BLINK_FREEZE_MIN
+  private freezeStart = 0
   /** Until this time (ms) the cursor stays frozen: the iris landmarks are wrong while a lid closes and for a moment after it opens. */
   private blinkUntil = 0
   private gestures: GestureDetector | null = null
@@ -125,9 +127,10 @@ class Engine {
     const calib = GazeCalibration.fromJSON(saved.calib)
     this.deadZone.reset()
     this.lastOut = null
-    this.openHist = []
+    this.freezeStart = 0
     this.tracker = calib.isFitted ? new GazeTracker(calib, saved.screen, trackerOpts) : null
     this.gestures = new GestureDetector(saved.thresholds)
+    this.blinkFreeze = Math.max(BLINK_FREEZE_MIN, saved.thresholds.blinkClosed ?? 0)
     this.works = saved.works
     this.swapEyes = saved.swapEyes
   }
@@ -208,15 +211,6 @@ class Engine {
     if (this.driving) this.drive(frame, now)
   }
 
-  /** True when the eyelid openness fell sharply within the last OPEN_LOOKBACK_MS (a blink or wink starting, before the blink score reacts). */
-  private openDropped(open: number, now: number): boolean {
-    this.openHist.push({ ts: now, v: open })
-    while (this.openHist.length && now - this.openHist[0]!.ts > OPEN_LOOKBACK_MS) this.openHist.shift()
-    let mx = 0
-    for (const h of this.openHist) if (h.v > mx) mx = h.v
-    return mx > 0.05 && open < OPEN_DROP_RATIO * mx
-  }
-
   private drive(frame: GazeFrame | null, now: number): void {
     if (!frame) {
       window.glance.send('gaze:frame', { ts: now, nx: null, ny: null, speed: 0, dwell: 0, held: false })
@@ -226,10 +220,15 @@ class Engine {
       // Decide the freeze BEFORE the tracker sees the frame: the iris landmarks are garbage while a lid closes, and a
       // garbage frame would otherwise enter the fixation window. Triggers: a blink/wink score, or the eyelid opening
       // (feature 9) dropping sharply, which starts a little before the blink score rises.
-      const closing = Math.max(frame.blinkLeft, frame.blinkRight) > BLINK_FREEZE || this.openDropped(frame.features[9] ?? 0, now)
+      const closing = Math.max(frame.blinkLeft, frame.blinkRight) > this.blinkFreeze
       if (closing) {
-        if (now >= this.blinkUntil) this.tracker.discardRecent(OPEN_LOOKBACK_MS)
-        this.blinkUntil = now + BLINK_HOLD_MS
+        if (this.freezeStart === 0) this.freezeStart = now
+        if (now - this.freezeStart <= MAX_FREEZE_MS) {
+          if (now >= this.blinkUntil) this.tracker.discardRecent(OPEN_LOOKBACK_MS)
+          this.blinkUntil = now + BLINK_HOLD_MS
+        }
+      } else {
+        this.freezeStart = 0
       }
       if (now < this.blinkUntil && this.lastOut) {
         window.glance.send('gaze:frame', { ts: now, nx: this.lastOut.nx, ny: this.lastOut.ny, speed: 0, dwell: 0, held: true })

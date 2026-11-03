@@ -1,7 +1,7 @@
 import type { GazeFrame } from './types';
 
 export type GestureEvent =
-  | { type: 'wink_left' | 'wink_right' | 'double_wink_left' | 'double_wink_right' | 'brows_up' | 'mouth_open_start' | 'mouth_open_end'; tsMs: number }
+  | { type: 'wink_left' | 'wink_right' | 'double_wink_left' | 'double_wink_right' | 'brows_up' | 'mouth_open_start' | 'mouth_open_end' | 'eyes_closed_long'; tsMs: number }
   | { type: 'scroll'; tsMs: number; velocity: number };
 
 export type GestureThresholds = {
@@ -23,6 +23,8 @@ export type GestureThresholds = {
   browsUp: number;
   /** Scroll velocity in px/s per rad/s of head pitch rate while brows are up (+ down). Negative flips direction. */
   scrollGain: number;
+  /** Both eyes held closed this long fires "eyes_closed_long" (opens the radial menu). Natural blinks are ~100-150 ms, so 700 is deliberate. Old saved profiles lack it and get this default. */
+  eyesClosedLongMs: number;
 };
 
 export const DEFAULT_THRESHOLDS: GestureThresholds = {
@@ -35,7 +37,12 @@ export const DEFAULT_THRESHOLDS: GestureThresholds = {
   mouthClose: 0.25,
   browsUp: 0.5,
   scrollGain: 1200,
+  eyesClosedLongMs: 700,
 };
+/** Both eyes may flicker open for up to this long (landmarker noise on a closed lid) without restarting the long-close timer. */
+const EYES_GAP_MS = 150;
+/** A hole in the frame stream longer than this restarts the long-close timer (we cannot know the eyes stayed closed). */
+const EYES_FRAME_GAP_MS = 300;
 
 const BROW_HOLD_MS = 100;
 const BROW_RELEASE = 0.6;
@@ -54,6 +61,9 @@ type Eye = 'left' | 'right';
  *   the one-frame skew at the end of a blink).
  * - double_wink_*: a second wink of the same eye starting within doubleWinkGapMs of the first one's end. It is
  *   emitted INSTEAD of the second wink_* (the first wink_* was already emitted); the next wink starts over.
+ * - eyes_closed_long: BOTH eyes closed continuously for eyesClosedLongMs (default 700; flicker up to 150 ms
+ *   tolerated); emitted ONCE, at the moment the time is reached while the eyes are still closed. Re-arms only
+ *   after both eyes are open again. A one-eye closure never fires it, a natural blink (~150 ms) is far below it.
  * - brows_up: browUp held >= browsUp for 100 ms; re-arms below 60% of the threshold.
  * - scroll: while brows are up, every frame with |head pitch rate| beyond a small dead zone. velocity px/s,
  *   + = down (nodding down), - = up.
@@ -65,6 +75,10 @@ export class GestureDetector {
   private poisoned = false;
   private cand: { eye: Eye; start: number; valid: boolean } | null = null;
   private lastWink: { eye: Eye; end: number } | null = null;
+  private bothSince: number | null = null;
+  private bothFired = false;
+  private bothGapSince: number | null = null;
+  private prevT: number | null = null;
   private mouthOpen = false;
   private browsEngaged = false;
   private browPending: number | null = null;
@@ -80,6 +94,10 @@ export class GestureDetector {
     this.poisoned = false;
     this.cand = null;
     this.lastWink = null;
+    this.bothSince = null;
+    this.bothFired = false;
+    this.bothGapSince = null;
+    this.prevT = null;
     this.mouthOpen = false;
     this.browsEngaged = false;
     this.browPending = null;
@@ -130,6 +148,33 @@ export class GestureDetector {
       }
     }
 
+    // ---- long both-eyes close
+    if (this.prevT !== null && t - this.prevT > EYES_FRAME_GAP_MS) {
+      this.bothSince = null;
+      this.bothGapSince = null;
+      if (!(next.left || next.right)) this.bothFired = false;
+    }
+    this.prevT = t;
+    if (next.left && next.right) {
+      this.bothGapSince = null;
+      if (this.bothSince === null) this.bothSince = t;
+      if (!this.bothFired && t - this.bothSince >= th.eyesClosedLongMs) {
+        this.bothFired = true;
+        ev.push({ type: 'eyes_closed_long', tsMs: t });
+      }
+    } else if (!next.left && !next.right) {
+      this.bothSince = null;
+      this.bothGapSince = null;
+      this.bothFired = false;
+    } else if (this.bothSince !== null && !this.bothFired) {
+      // one eye reopened: tolerate a short flicker, otherwise this is not a deliberate both-eyes close
+      if (this.bothGapSince === null) this.bothGapSince = t;
+      if (t - this.bothGapSince > EYES_GAP_MS) {
+        this.bothSince = null;
+        this.bothGapSince = null;
+      }
+    }
+
     // ---- mouth
     if (!this.mouthOpen && frame.jawOpen >= th.mouthOpen) {
       this.mouthOpen = true;
@@ -175,7 +220,7 @@ function hyst(prev: boolean, v: number, hi: number, lo: number): boolean {
   return v >= hi;
 }
 
-export type GestureName = 'winkLeft' | 'winkRight' | 'mouthOpen' | 'browsUp';
+export type GestureName = 'winkLeft' | 'winkRight' | 'mouthOpen' | 'browsUp' | 'eyesClosed';
 
 const percentile = (a: number[], q: number): number => {
   if (a.length === 0) return 0;
@@ -205,7 +250,7 @@ const push = (s: Sig, f: GazeFrame) => {
  */
 export class GestureCalibrator {
   private neutral = emptySig();
-  private g: Record<GestureName, Sig> = { winkLeft: emptySig(), winkRight: emptySig(), mouthOpen: emptySig(), browsUp: emptySig() };
+  private g: Record<GestureName, Sig> = { winkLeft: emptySig(), winkRight: emptySig(), mouthOpen: emptySig(), browsUp: emptySig(), eyesClosed: emptySig() };
 
   addNeutral(frame: GazeFrame): void { push(this.neutral, frame); }
   addGesture(name: GestureName, frame: GazeFrame): void { push(this.g[name], frame); }
@@ -215,8 +260,8 @@ export class GestureCalibrator {
     const nBlinkHi = Math.max(percentile(this.neutral.bl, 0.9), percentile(this.neutral.br, 0.9));
     const nJaw = percentile(this.neutral.jaw, 0.9);
     const nBrow = percentile(this.neutral.brow, 0.9);
-    const works = { winkLeft: false, winkRight: false, mouthOpen: false, browsUp: false };
-    const separation = { winkLeft: 0, winkRight: 0, mouthOpen: 0, browsUp: 0 };
+    const works = { winkLeft: false, winkRight: false, mouthOpen: false, browsUp: false, eyesClosed: false };
+    const separation = { winkLeft: 0, winkRight: 0, mouthOpen: 0, browsUp: 0, eyesClosed: 0 };
 
     const wl = this.g.winkLeft;
     const wr = this.g.winkRight;
@@ -249,6 +294,14 @@ export class GestureCalibrator {
     separation.browsUp = this.g.browsUp.brow.length ? browLevel - nBrow : 0;
     works.browsUp = separation.browsUp >= 0.2;
     if (works.browsUp) T.browsUp = clamp(nBrow + 0.55 * separation.browsUp, 0.2, 0.85);
+
+    // both eyes held closed: the WEAKER eye must clear the (possibly wink-derived) closed threshold with some margin
+    const ec = this.g.eyesClosed;
+    if (ec.bl.length) {
+      const lvl = Math.min(percentile(ec.bl, 0.25), percentile(ec.br, 0.25));
+      separation.eyesClosed = lvl - nBlinkHi;
+      works.eyesClosed = separation.eyesClosed >= 0.3 && lvl >= T.blinkClosed + 0.05;
+    }
 
     return { thresholds: T, works, separation };
   }

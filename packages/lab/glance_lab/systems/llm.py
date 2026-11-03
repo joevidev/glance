@@ -58,7 +58,8 @@ def open_spec(model: str = OPEN_MODEL) -> ModelSpec:
 def frontier_spec(model: str = FRONTIER_MODEL) -> ModelSpec:
     # gpt-6* / gpt-5.x reject temperature != 1 and `max_tokens`: omit temperature,
     # use max_completion_tokens.
-    prices = {"gpt-6-astra": (10.0, 50.0), "gpt-6.1-sol": (2.0, 10.0), "gpt-5.5": (5.0, 30.0), "gpt-5.4": (2.5, 15.0)}
+    prices = {"gpt-6-astra": (10.0, 50.0), "gpt-6.1-sol": (2.0, 10.0), "gpt-5.5": (5.0, 30.0), "gpt-5.4": (2.5, 15.0),
+              "gpt-5.4-mini": (0.75, 4.5)}   # all from developers.openai.com/api/docs/pricing, 2026-11-02 (see results/PRICING.md)
     pi, po = prices.get(model, (None, None))
     return ModelSpec("frontier", "openai", model, pi, po, send_temperature=False,
                      token_param="max_completion_tokens", max_tokens=4096)

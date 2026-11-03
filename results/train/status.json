@@ -1,0 +1,17 @@
+{
+  "state": "done",
+  "step": 158,
+  "total_steps": 158,
+  "elapsed_s": 1515.5,
+  "last_update": "2026-11-02T13:40:29-0800",
+  "session": "ts-7c4a5a92a9484aaea1af955144b97018",
+  "run_id": "run-fd1f9b4e7b5b447a8c8731f4d43e9393",
+  "base_model": "accounts/fireworks/models/glm-5p3",
+  "errors": [],
+  "last_loss": 0.1422085165977478,
+  "sec_per_step": 8.52,
+  "test_total": 360,
+  "scored": 360,
+  "running_acc": 0.5314,
+  "accuracy": 0.5278
+}

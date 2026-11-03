@@ -1,0 +1,19 @@
+train cases 2520 (dropped too long: 0), tokens 1890970, steps 158, est train cost $16.81; test cases 360
+step 1/158 loss=2.5549824237823486 10.3s
+step 10/158 loss=0.21721041202545166 9.0s
+step 20/158 loss=0.10948836803436279 8.6s
+step 30/158 loss=0.2892917990684509 8.9s
+step 40/158 loss=0.14888793230056763 8.7s
+step 50/158 loss=0.11276912689208984 8.7s
+step 60/158 loss=0.12649257481098175 8.7s
+step 70/158 loss=0.09832809865474701 8.7s
+step 80/158 loss=0.1999276727437973 8.9s
+step 90/158 loss=0.22903601825237274 8.7s
+step 100/158 loss=0.20294061303138733 8.8s
+step 110/158 loss=0.19994249939918518 8.8s
+step 120/158 loss=0.834879994392395 9.0s
+step 130/158 loss=0.5252572298049927 8.8s
+step 140/158 loss=0.14482779800891876 9.1s
+step 150/158 loss=0.15564024448394775 8.8s
+prefill_queue_duration is unavailable; AdaptiveConcurrencyController is using HTTP 429/503 and transport-error congestion signals instead
+scored 360 rows, accuracy 0.5278

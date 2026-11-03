@@ -1,0 +1,16 @@
+2026-11-02T12:31:55-0800 probe_session accounts/fireworks/models/muse-glimmer-30b ts-91a1e4de1afd42cb81241f774b79bfdc
+2026-11-02T12:31:55-0800 probe_session accounts/fireworks/models/glm-5p3 ts-a7ab90b00be74ab2bc7f18a704479814
+2026-11-02T12:31:55-0800 probe_session accounts/fireworks/models/qwen3p8-27b ts-cc878d5130974107a96c31babb77e603
+2026-11-02T12:32:05-0800 probe_session accounts/fireworks/models/qwen3p6-35b-a3b ts-e822b165481045c3bb9514506adc23f3
+2026-11-02T12:35:11-0800 session ts-c16d4c640ad24f0c877c0c197ccb7086
+2026-11-02T12:35:11-0800 run run-3ecfa26d3146433a81999b478abb13cd
+2026-11-02T12:35:38-0800 sampler_checkpoint buivo/run-3ecfa26d3146433a81999b478abb13cd/smoke-1-6d96dac2
+2026-11-02T12:37:07-0800 session ts-6992d94753bd49bfb45a935438287c2b
+2026-11-02T12:37:07-0800 run run-16a9907c588d487faab29c61d237ff35
+2026-11-02T12:40:13-0800 sampler_checkpoint buivo/run-16a9907c588d487faab29c61d237ff35/smoke-1-baa1f18c
+2026-11-02T13:15:17-0800 session accounts/fireworks/models/glm-5p3 ts-7c4a5a92a9484aaea1af955144b97018
+2026-11-02T13:15:17-0800 run run-fd1f9b4e7b5b447a8c8731f4d43e9393
+2026-11-02T13:21:25-0800 sampler_checkpoint step40 buivo/run-fd1f9b4e7b5b447a8c8731f4d43e9393/glance-s0040-fab941eb
+2026-11-02T13:27:26-0800 sampler_checkpoint step80 buivo/run-fd1f9b4e7b5b447a8c8731f4d43e9393/glance-s0080-fab941eb
+2026-11-02T13:33:30-0800 sampler_checkpoint step120 buivo/run-fd1f9b4e7b5b447a8c8731f4d43e9393/glance-s0120-fab941eb
+2026-11-02T13:39:15-0800 sampler_checkpoint final buivo/run-fd1f9b4e7b5b447a8c8731f4d43e9393/glance-lora-v1-fab941eb

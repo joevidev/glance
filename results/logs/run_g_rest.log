@@ -1,0 +1,29 @@
+manifest locked, test sha ok, n_test=360
+360 cases from /Users/dianamunozlar/Workspace/jctimana/buivo/hackathons/fireworks-nov02/glance/data/dataset/test.jsonl; writing rows to /Users/dianamunozlar/Workspace/jctimana/buivo/hackathons/fireworks-nov02/glance/results/rows
+[open_cmd_only] 50/360 done, correct so far 32, errors 0
+[open_cmd_only] 100/360 done, correct so far 54, errors 0
+[open_cmd_only] 150/360 done, correct so far 74, errors 0
+[open_cmd_only] 200/360 done, correct so far 100, errors 0
+[open_cmd_only] 250/360 done, correct so far 126, errors 0
+[open_cmd_only] 300/360 done, correct so far 147, errors 0
+[open_cmd_only] 350/360 done, correct so far 165, errors 0
+[open_cmd_only] 360/360 done, correct so far 165, errors 0
+open_cmd_only: n=360 acc=45.8% parse_fail_or_none=9 api_errors=0 truncated_length=9 rows_that_needed_retries=0 total_cost_usd=2.0241528
+[harness_top5] 50/360 done, correct so far 13, errors 0
+[harness_top5] 100/360 done, correct so far 29, errors 0
+[harness_top5] 150/360 done, correct so far 58, errors 0
+[harness_top5] 200/360 done, correct so far 71, errors 0
+[harness_top5] 250/360 done, correct so far 97, errors 0
+[harness_top5] 300/360 done, correct so far 125, errors 0
+[harness_top5] 350/360 done, correct so far 142, errors 0
+[harness_top5] 360/360 done, correct so far 143, errors 0
+harness_top5: n=360 acc=39.7% parse_fail_or_none=27 api_errors=0 truncated_length=27 rows_that_needed_retries=0 total_cost_usd=2.261988
+[harness_vote] 50/360 done, correct so far 24, errors 0
+[harness_vote] 100/360 done, correct so far 53, errors 0
+[harness_vote] 150/360 done, correct so far 87, errors 0
+[harness_vote] 200/360 done, correct so far 113, errors 0
+[harness_vote] 250/360 done, correct so far 145, errors 0
+[harness_vote] 300/360 done, correct so far 176, errors 0
+[harness_vote] 350/360 done, correct so far 185, errors 40
+[harness_vote] 360/360 done, correct so far 185, errors 46
+harness_vote: n=360 acc=51.4% parse_fail_or_none=49 api_errors=46 truncated_length=49 rows_that_needed_retries=4 total_cost_usd=None

@@ -74,7 +74,8 @@ def test_summary_shape_and_charts(tmp_path):
     assert "lora_vs_frontier" not in s["pairs"]
     assert s["by_sigma"]["60"]["lora"]["acc"] == 100.0 and "deictic" in s["by_command_type"]
     assert "gpt-test" in s["headline"] and "The LoRA beat the open base model (100.0% vs 50.0%" in s["headline"]
-    assert s["not_run"] == ["raw", "frontier", "harness_top5", "harness_vote", "open_base_geo", "frontier_geo", "open_base_flash"]
+    assert s["not_run"] == ["raw", "frontier", "harness_top5", "harness_vote", "open_base_geo", "frontier_geo", "open_base_flash",
+                          "frontier_rerun", "frontier_sol", "frontier_g54", "frontier_g54mini"]
     json.dumps(s)
     make_charts(s, tmp_path)
     for n in ("leaderboard.png", "disagreements.png", "bootstrap_ci.png"):

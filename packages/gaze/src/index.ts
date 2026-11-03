@@ -1,11 +1,12 @@
 export type { Vec2, GazeFrame, LandmarkerResultLike, ScreenSize } from './types';
-export { frameFromResult, headPoseFromMatrix, FEATURE_NAMES, FEATURE_COUNT, POLY_CORE, assembleFeatures } from './features';
+export { frameFromResult, headPoseFromMatrix, FeatureSmoother, FEATURE_NAMES, FEATURE_COUNT, POLY_CORE, assembleFeatures } from './features';
 export type { FeatureParts, EyeMetrics } from './features';
 export { createFaceLandmarker } from './landmarker';
 export type { FaceLandmarkerHandle } from './landmarker';
-export { GazeCalibration } from './calibration';
+export { GazeCalibration, rejectOutlierFrames } from './calibration';
 export type { FitResult } from './calibration';
 export { OneEuroFilter2D } from './filter';
+export { FixationFilter, DeadZone } from './fixation';
 export { GazeTracker } from './tracker';
 export type { TrackerUpdate } from './tracker';
 export { DwellDetector } from './dwell';

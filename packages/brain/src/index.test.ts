@@ -17,7 +17,7 @@ const mock = (content: string | null) => {
 describe('decideIntent', () => {
   it('sends the shared prompt at temperature 0 and parses the target', async () => {
     const { create, client } = mock('{"target": 2}')
-    const r = await decideIntent(input, { client })
+    const r = await decideIntent(input, { client, provider: 'fireworks' })
     expect(r.target).toBe(2)
     expect(r.raw).toBe('{"target": 2}')
     expect(r.model).toBe(DEFAULT_MODEL)
@@ -59,11 +59,16 @@ describe('openai provider', () => {
     expect(r.model).toBe('gpt-6-astra')
     expect(r.target).toBe(1)
   })
-  it('fireworks stays the default provider', async () => {
+  it('fireworks is used when asked for explicitly (temperature 0)', async () => {
     const { create, client } = mock('{"target": 0}')
-    const r = await decideIntent(input, { client })
+    const r = await decideIntent(input, { client, provider: 'fireworks' })
     expect(r.provider).toBe('fireworks')
     expect((create.mock.calls[0]![0] as any).temperature).toBe(0)
+  })
+  it('openai is the default provider (the Fireworks account is suspended)', async () => {
+    const { client } = mock('{"target": 0}')
+    const r = await decideIntent(input, { client })
+    expect(r.provider).toBe('openai')
   })
 })
 

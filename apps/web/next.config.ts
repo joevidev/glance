@@ -4,7 +4,7 @@ const config: NextConfig = {
   output: "export",
   images: { unoptimized: true },
   trailingSlash: true,
-  transpilePackages: ["@glance/ui"],
+  transpilePackages: ["@glance/ui", "@glance/gaze"],
 }
 
 export default config

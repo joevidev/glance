@@ -4,6 +4,7 @@ import { REPO, REPO_URL } from "../lib/site"
 
 const nav = [
   { href: "/", label: "Home" },
+  { href: "/try/", label: "Try it" },
   { href: "/results/", label: "Results" },
   { href: "/disclosure/", label: "Disclosure" },
 ]
@@ -18,7 +19,7 @@ export function Header() {
         </Link>
         <nav className="relative z-10 flex items-center gap-1 text-sm sm:gap-2">
           {nav.map((n) => (
-            <Link key={n.href} href={n.href} className="rounded-full px-3 py-1.5 text-w80 transition hover:bg-white/10 hover:text-white">
+            <Link key={n.href} href={n.href} className={`rounded-full px-2.5 py-1.5 text-w80 transition hover:bg-white/10 hover:text-white sm:px-3 ${n.href === "/" ? "hidden sm:block" : ""}`}>
               {n.label}
             </Link>
           ))}

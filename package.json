@@ -12,7 +12,9 @@
     "test": "turbo run test",
     "desktop": "turbo run dev --filter=@glance/desktop",
     "web": "turbo run dev --filter=@glance/web",
-    "lab": "pnpm --filter @glance/lab"
+    "lab": "pnpm --filter @glance/lab",
+    "preflight": "bash scripts/preflight-demo.sh",
+    "replay": "cd packages/lab && uv run python -m glance_lab.replay.replay"
   },
   "devDependencies": {
     "turbo": "latest",
